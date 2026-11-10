@@ -261,6 +261,18 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
     </div>`;
   }
 
+  /** A compact dropdown for a request parameter, named as the API names it. */
+  #select<T extends string>(label: string, value: T, options: [T, string][], set: (value: T) => void) {
+    return html`<label class="select">
+      <span class="label">${label}</span>
+      <span class="value" aria-hidden="true">${options.find(([option]) => option === value)?.[1]}</span>
+      <select aria-label=${label} @change=${(event: Event) => set((event.target as HTMLSelectElement).value as T)}>
+        ${options.map(([option, text]) => html`<option value=${option} ?selected=${option === value}>${text}</option>`)}
+      </select>
+      <span class="caret" aria-hidden="true"></span>
+    </label>`;
+  }
+
   #picker(title: string, chosen: string[], set: (aliases: string[]) => void, hint: string) {
     return html`<div class="picker">
       <div class="picker-head"><strong>${title}</strong><span>${hint}</span>
@@ -290,45 +302,34 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         ? "The Media Delivery API is turned off (DeliveryApi:Media:Enabled). This is what it would return."
         : undefined;
 
+    const fieldsChoice = this._fieldsOpen || this._fieldsPick.length ? "pick" : "all";
     return html`
-      <div class="toolbar">
-        ${isContent
-          ? html`<div class="segmented" role="group" aria-label="Version"><span class="track">
-              <button type="button" aria-pressed=${String(this._mode === "draft")} @click=${() => (this._mode = "draft")}
-                title=${draftDiffers ? "The draft has changes that are not published" : "The latest saved version, as Preview: true returns it"}>
-                ${draftDiffers ? html`<span class="dot" aria-hidden="true"></span>` : nothing}Draft</button>
-              <button type="button" aria-pressed=${String(this._mode === "published")} ?disabled=${!this._published}
-                title=${this._published ? "What frontends get today" : "Not published yet"} @click=${() => (this._mode = "published")}>Published</button>
-              <button type="button" aria-pressed=${String(this._mode === "changes")} ?disabled=${!this._published}
-                title="What publishing the draft would change" @click=${() => (this._mode = "changes")}>Changes
-                ${this._mode === "changes" && this._changes ? html`<span class="count">${this._changes.size}</span>` : nothing}</button>
-            </span></div>`
-          : nothing}
-        ${isContent && this._mode === "changes" && this._view === "tree"
-          ? this.#segmented("Changes as", this._changeStyle, [["diff", "Diff", "A red line for published and a green line for the draft"], ["inline", "Inline", "Published struck through, next to the draft"]], (value) => (this._changeStyle = value))
-          : nothing}
-        ${this.#segmented<Expand>("expand", this._expand, [["none", "None", "No expand parameter"], ["all", "All", "expand=properties[$all]"], ["pick", "Pick…", "Choose the properties to expand"]], (value) => (this._expand = value))}
-        <div class="segmented" role="group" aria-label="fields">
-          <span class="label" aria-hidden="true">fields</span>
-          <span class="track"><button type="button" aria-pressed=${String(!this._fieldsPick.length && !this._fieldsOpen)} title="Every property" @click=${() => { this._fieldsPick = []; this._fieldsOpen = false; }}>All</button>
-          <button type="button" aria-pressed=${String(this._fieldsOpen || !!this._fieldsPick.length)} title="Choose the properties to return" @click=${() => (this._fieldsOpen = !this._fieldsOpen)}>Pick…</button></span>
-        </div>
-        ${this.#segmented("View", this._view, [["tree", "Tree"], ["raw", "Raw", "Read-only JSON in the code editor"]], (value) => (this._view = value))}
-      </div>
-      ${this._expand === "pick" ? this.#picker("Expand", this._expandPick, (aliases) => (this._expandPick = aliases), "Pickers and blocks whose items come back with their properties.") : nothing}
-      ${this._fieldsOpen || this._fieldsPick.length ? this.#picker("Fields", this._fieldsPick, (aliases) => (this._fieldsPick = aliases), "Only these properties come back. None chosen means all.") : nothing}
-      ${this._view === "tree"
-        ? html`<div class="toolbar">
-            <uui-input class="search" label="Search keys and values" placeholder="Search keys and values, or type a path like properties.image[0].url"
-              .value=${this._query} @input=${(event: InputEvent) => (this._query = (event.target as HTMLInputElement).value)}
-              @keydown=${(event: KeyboardEvent) => { if (event.key === "Enter") { event.preventDefault(); this.shadowRoot?.querySelector("thebuilder-json-tree")?.next(event.shiftKey ? -1 : 1); } }}>
-              <uui-icon name="icon-search" slot="prepend"></uui-icon>
-              <span slot="append" class="hits">${this.#hitsLabel()}</span>
-            </uui-input>
-            ${this.#segmented("Open levels", this._depth, [[1, "1", "Show the tree one level deep"], [2, "2", "Two levels deep"], [3, "3", "Three levels deep"], [99, "All", "Open every level"]], (value) => { this._depth = value; this.shadowRoot?.querySelector("thebuilder-json-tree")?.reset(); })}
-          </div>`
-        : nothing}
       <section class="panel" aria-label="Response">
+        <div class="chrome">
+          ${isContent
+            ? html`<div class="segmented" role="group" aria-label="Version"><span class="track">
+                <button type="button" aria-pressed=${String(this._mode === "draft")} @click=${() => (this._mode = "draft")}
+                  title=${draftDiffers ? "The draft has changes that are not published" : "The latest saved version, as Preview: true returns it"}>
+                  ${draftDiffers ? html`<span class="dot" aria-hidden="true"></span>` : nothing}Draft</button>
+                <button type="button" aria-pressed=${String(this._mode === "published")} ?disabled=${!this._published}
+                  title=${this._published ? "What frontends get today" : "Not published yet"} @click=${() => (this._mode = "published")}>Published</button>
+                <button type="button" aria-pressed=${String(this._mode === "changes")} ?disabled=${!this._published}
+                  title="What publishing the draft would change" @click=${() => (this._mode = "changes")}>Changes
+                  ${this._mode === "changes" && this._changes ? html`<span class="count">${this._changes.size}</span>` : nothing}</button>
+              </span></div>`
+            : nothing}
+          ${isContent && this._mode === "changes" && this._view === "tree"
+            ? this.#segmented("Changes as", this._changeStyle, [["diff", "Diff", "A red line for published and a green line for the draft"], ["inline", "Inline", "Published struck through, next to the draft"]], (value) => (this._changeStyle = value))
+            : nothing}
+          <span class="spacer"></span>
+          ${this.#select<Expand>("expand", this._expand, [["none", "None"], ["all", "All"], ["pick", "Pick…"]], (value) => (this._expand = value))}
+          ${this.#select<"all" | "pick">("fields", fieldsChoice, [["all", "All"], ["pick", "Pick…"]], (value) => {
+            if (value === "all") { this._fieldsPick = []; this._fieldsOpen = false; } else this._fieldsOpen = true;
+          })}
+          ${this.#segmented("View", this._view, [["tree", "Tree"], ["raw", "Raw", "Read-only JSON in the code editor"]], (value) => (this._view = value))}
+        </div>
+        ${this._expand === "pick" ? this.#picker("Expand", this._expandPick, (aliases) => (this._expandPick = aliases), "Pickers and blocks whose items come back with their properties.") : nothing}
+        ${fieldsChoice === "pick" ? this.#picker("Fields", this._fieldsPick, (aliases) => (this._fieldsPick = aliases), "Only these properties come back. None chosen means all.") : nothing}
         <div class="panel-header">
         ${request
           ? html`<div class="request">
@@ -356,6 +357,16 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
             : nothing}
         </div>
         </div>
+        ${this._view === "tree"
+          ? html`<div class="find">
+              <uui-icon name="icon-search"></uui-icon>
+              <input class="search" type="search" aria-label="Search keys and values" placeholder="Search keys and values, or type a path like properties.image[0].url"
+                .value=${this._query} @input=${(event: InputEvent) => (this._query = (event.target as HTMLInputElement).value)}
+                @keydown=${(event: KeyboardEvent) => { if (event.key === "Enter") { event.preventDefault(); this.shadowRoot?.querySelector("thebuilder-json-tree")?.next(event.shiftKey ? -1 : 1); } }} />
+              <span class="hits">${this.#hitsLabel()}</span>
+              ${this.#segmented("Open levels", this._depth, [[1, "1", "Show the tree one level deep"], [2, "2", "Two levels deep"], [3, "3", "Three levels deep"], [99, "All", "Open every level"]], (value) => { this._depth = value; this.shadowRoot?.querySelector("thebuilder-json-tree")?.reset(); })}
+            </div>`
+          : nothing}
         ${offNote ? html`<p class="note">${offNote}</p>` : nothing}
         <div class="body">${this.#body()}</div>
       </section>
@@ -427,11 +438,72 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         min-height: 0;
         overflow: auto;
       }
-      .toolbar {
+      /* The viewer's own header: which version, then the request parameters and the view on the right. */
+      .chrome {
         display: flex;
         flex-wrap: wrap;
         gap: var(--uui-size-space-3);
         align-items: center;
+        padding: var(--uui-size-space-3);
+        background: var(--uui-color-surface);
+        border-bottom: 1px solid var(--inspector-line);
+      }
+      .spacer {
+        flex: 1;
+      }
+      .select {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 30px;
+        padding: 0 26px 0 10px;
+        border-radius: 7px;
+        font-size: 13px;
+        box-shadow: inset 0 0 0 1px var(--inspector-line);
+        cursor: pointer;
+      }
+      .select:hover {
+        background: var(--inspector-track);
+      }
+      .select:focus-within {
+        outline: 2px solid var(--uui-color-focus);
+      }
+      .select .label {
+        font: 12.5px var(--uui-font-monospace, monospace);
+        color: var(--uui-color-text-alt);
+      }
+      .select .value {
+        font-weight: 600;
+        color: var(--uui-color-text);
+      }
+      /* The native select covers the whole pill unseen, so a click anywhere opens its options and the
+         keyboard and screen readers get a real select. */
+      .select select {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        opacity: 0;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .select .caret {
+        position: absolute;
+        right: 11px;
+        top: 50%;
+        margin-top: -4px;
+        pointer-events: none;
+      }
+      .find {
+        display: flex;
+        align-items: center;
+        gap: var(--uui-size-space-3);
+        padding: 4px var(--uui-size-space-3) 4px var(--uui-size-space-5);
+        background: var(--uui-color-surface);
+        border-bottom: 1px solid var(--inspector-line);
+      }
+      .find > uui-icon {
+        color: var(--uui-color-text-alt);
       }
       /* A track with the chosen option raised out of it, so the current choice reads at a glance. */
       /* The label sits outside the track as plain text, so only the options look clickable. */
@@ -502,12 +574,19 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         color: var(--uui-color-warning-contrast, #000);
       }
       .search {
+        all: unset;
         flex: 1;
-        min-width: 240px;
+        min-width: 160px;
+        height: 34px;
+        font-size: 13.5px;
+        color: var(--uui-color-text);
       }
-      .search uui-icon {
-        padding-left: var(--uui-size-space-3);
+      .search::-webkit-search-cancel-button {
+        display: none;
+      }
+      .search::placeholder {
         color: var(--uui-color-text-alt);
+        opacity: 0.8;
       }
       .hits {
         padding: 0 var(--uui-size-space-3);
@@ -518,9 +597,8 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       .picker {
         display: grid;
         gap: var(--uui-size-space-2);
-        padding: var(--uui-size-space-3) var(--uui-size-space-4);
-        border: 1px solid var(--uui-color-border);
-        border-radius: var(--uui-border-radius);
+        padding: var(--uui-size-space-3) var(--uui-size-space-5);
+        border-bottom: 1px solid var(--inspector-line);
         background: var(--uui-color-surface);
       }
       .picker-head {

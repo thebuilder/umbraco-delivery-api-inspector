@@ -65,10 +65,10 @@ await open(home);
 await view.getByRole("button", { name: "2", exact: true }).click();
 await shot("document");
 
-await view.getByRole("button", { name: "All", exact: true }).first().click();
-await view.locator("uui-input input").fill("url");
+await view.locator('select[aria-label="expand"]').selectOption("all");
+await view.locator("input.search").fill("url");
 await shot("search");
-await view.locator("uui-input input").fill("");
+await view.locator("input.search").fill("");
 
 await open(harbourMornings);
 await view.getByRole("button", { name: /Changes/ }).click();
