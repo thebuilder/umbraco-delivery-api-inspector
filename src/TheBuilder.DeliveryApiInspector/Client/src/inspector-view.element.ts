@@ -618,7 +618,8 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         display: inline-flex;
         gap: 6px;
         align-items: center;
-        padding: 4px 10px;
+        /* One extra pixel on top, for the same Lato offset the dropdowns correct. */
+        padding: 5px 10px 3px;
         border-radius: 6px;
         font-size: 13px;
         color: var(--uui-color-text-alt);
@@ -815,7 +816,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         white-space: nowrap;
         height: 30px;
         box-sizing: border-box;
-        padding: 0 10px;
+        padding: 2px 10px 0;
         border-radius: 7px;
         font: 500 12.5px var(--uui-font-family);
         color: var(--uui-color-text);
@@ -825,6 +826,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       }
       .copy-button uui-icon {
         font-size: 13px;
+        margin-top: -2px;
         color: var(--uui-color-text-alt);
       }
       .copy-button:hover {
