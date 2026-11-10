@@ -265,11 +265,13 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
   #select<T extends string>(label: string, value: T, options: [T, string][], set: (value: T) => void) {
     return html`<label class="select">
       <span class="label">${label}</span>
-      <span class="value" aria-hidden="true">${options.find(([option]) => option === value)?.[1]}</span>
-      <select aria-label=${label} @change=${(event: Event) => set((event.target as HTMLSelectElement).value as T)}>
-        ${options.map(([option, text]) => html`<option value=${option} ?selected=${option === value}>${text}</option>`)}
-      </select>
-      <span class="caret" aria-hidden="true"></span>
+      <span class="box">
+        <span class="value" aria-hidden="true">${options.find(([option]) => option === value)?.[1]}</span>
+        <svg class="chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
+        <select aria-label=${label} @change=${(event: Event) => set((event.target as HTMLSelectElement).value as T)}>
+          ${options.map(([option, text]) => html`<option value=${option} ?selected=${option === value}>${text}</option>`)}
+        </select>
+      </span>
     </label>`;
   }
 
@@ -460,33 +462,53 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       .spacer {
         flex: 1;
       }
+      /* Named like the API parameter, with the name outside as plain text, as "Open levels" does,
+         so only the box with the value looks clickable. */
       .select {
-        position: relative;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        height: 30px;
-        padding: 0 26px 0 10px;
-        border-radius: 7px;
+        gap: 8px;
         font-size: 13px;
-        box-shadow: inset 0 0 0 1px var(--inspector-line);
         cursor: pointer;
       }
-      .select:hover {
-        background: var(--inspector-track);
-      }
-      .select:focus-within {
-        outline: 2px solid var(--uui-color-focus);
+      .select + .select {
+        margin-left: 8px;
       }
       .select .label {
         color: var(--uui-color-text-alt);
       }
+      .select .box {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 30px;
+        box-sizing: border-box;
+        padding: 0 10px;
+        border-radius: 7px;
+        background: var(--uui-color-surface);
+        box-shadow: inset 0 0 0 1px var(--uui-color-border);
+      }
+      .select:hover .box {
+        background: var(--inspector-track);
+      }
+      .select:focus-within .box {
+        outline: 2px solid var(--uui-color-focus);
+      }
       .select .value {
-        font-weight: 500;
         color: var(--uui-color-text);
       }
-      /* The native select covers the whole pill unseen, so a click anywhere opens its options and the
-         keyboard and screen readers get a real select. */
+      .select .chevron {
+        width: 10px;
+        height: 6px;
+        fill: none;
+        stroke: var(--uui-color-text-alt);
+        stroke-width: 1.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      /* The native select covers the box unseen, so a click opens its options and the keyboard and
+         screen readers get a real select. */
       .select select {
         position: absolute;
         inset: 0;
@@ -494,13 +516,6 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         opacity: 0;
         cursor: pointer;
         font-size: 13px;
-      }
-      .select .caret {
-        position: absolute;
-        right: 11px;
-        top: 50%;
-        margin-top: -4px;
-        pointer-events: none;
       }
       /* The search sits on the code itself, as a field of its own, not as another band. */
       .find {
