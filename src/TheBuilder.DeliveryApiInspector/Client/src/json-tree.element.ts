@@ -256,10 +256,14 @@ export class JsonTreeElement extends LitElement {
       rows.push(html`<div class="row close" aria-hidden="true" style="--level:${level}"><span class="gutter"></span><span class="punct">${end}</span></div>`);
     };
 
+    // The response itself, so the top-level keys sit inside its braces as they do in the JSON.
+    const [rootStart, rootEnd] = brackets(this.data);
+    rows.push(html`<div class="row root" aria-hidden="true" style="--level:0"><span class="gutter"></span><span class="punct">${rootStart}</span></div>`);
     for (const [key, child] of children(this.data)) walk(key, child, [key], 1, this.data, undefined);
     for (const [removedKey, removed] of this.#removedByParent.get(pathKey([])) ?? []) {
       rows.push(html`<div class="row removed" style="--level:1"><span class="gutter"></span><span class="key">${JSON.stringify(removedKey)}</span><span class="punct colon">:</span><span class="before">${preview(removed.before)}</span><span class="meta">Only in published</span></div>`);
     }
+    rows.push(html`<div class="row root" aria-hidden="true" style="--level:0"><span class="gutter"></span><span class="punct">${rootEnd}</span></div>`);
     if (searching && !this.#hits.length) {
       return html`<p class="empty">Nothing matches “${this.query.trim()}”.</p>`;
     }
@@ -307,6 +311,8 @@ export class JsonTreeElement extends LitElement {
       --json-removed: color-mix(in srgb, var(--uui-color-danger, #d42054) 12%, transparent);
       --json-changed: color-mix(in srgb, var(--uui-color-warning, #fbd142) 22%, transparent);
       --json-mark: color-mix(in srgb, var(--uui-color-warning, #fbd142) 60%, transparent);
+      --json-mark-current: var(--uui-color-warning, #fbd142);
+      --json-current: color-mix(in srgb, var(--uui-color-selected, #3544b1) 9%, transparent);
       font: 12.5px/1.75 var(--uui-font-monospace, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
       color: var(--uui-color-text);
     }
@@ -315,22 +321,28 @@ export class JsonTreeElement extends LitElement {
       --json-number: #7cb8ff;
       --json-boolean: #c79bff;
     }
+    /* The tab's panel scrolls the tree both ways; rows stretch to the widest one so hover and
+       highlights span the whole line. */
     .tree {
       padding: var(--uui-size-space-2, 6px) 0;
-      overflow-x: auto;
+      width: max-content;
+      min-width: 100%;
+      box-sizing: border-box;
     }
     .row {
       position: relative;
       display: flex;
       align-items: baseline;
       white-space: nowrap;
-      padding-left: calc((var(--level) - 1) * 18px);
+      /* Every level sits one step inside the response's own braces. */
+      padding-left: calc(var(--level) * 18px);
       padding-right: var(--uui-size-space-4, 12px);
-      background-image: repeating-linear-gradient(to right, var(--json-guide) 0 1px, transparent 1px 18px);
+      /* One guide per open parent, centred under that parent's 18px chevron column. The root's
+         braces have no chevron, so the guides start one column in. */
+      background-image: repeating-linear-gradient(to right, transparent 0 8.5px, var(--json-guide) 8.5px 9.5px, transparent 9.5px 18px);
       background-size: calc((var(--level) - 1) * 18px) 100%;
-      background-position: 7px 0;
+      background-position: 18px 0;
       background-repeat: no-repeat;
-      border-radius: 3px;
       outline: none;
     }
     .row:hover,
@@ -411,7 +423,9 @@ export class JsonTreeElement extends LitElement {
     .before { margin-right: 8px; text-decoration: line-through; color: var(--uui-color-danger); }
     .removed .before { text-decoration: none; }
     mark { background: var(--json-mark); color: inherit; border-radius: 2px; }
-    .current { box-shadow: inset 3px 0 0 var(--uui-color-selected, #3544b1); }
+    /* The search hit Enter moved to: the whole row tinted, and its match in full colour. */
+    .current { background-color: var(--json-current); }
+    .current mark { background: var(--json-mark-current); }
     .thumb {
       position: fixed;
       inset: auto;

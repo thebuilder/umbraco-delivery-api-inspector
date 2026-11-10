@@ -321,9 +321,10 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
             ${this.#segmented("Open levels", this._depth, [[1, "1", "Show the tree one level deep"], [2, "2", "Two levels deep"], [3, "3", "Three levels deep"], [99, "All", "Open every level"]], (value) => { this._depth = value; this.shadowRoot?.querySelector("thebuilder-json-tree")?.reset(); })}
           </div>`
         : nothing}
-      <uui-box>
+      <section class="panel" aria-label="Response">
+        <div class="panel-header">
         ${request
-          ? html`<div class="request" slot="header">
+          ? html`<div class="request">
               <div class="line">
                 <span class="method">GET</span>
                 <span id="url" class="url" title=${fullUrl(request)}>${this._url
@@ -334,15 +335,16 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
               ${request.headers.length ? html`<div class="headers">${request.headers.map(([name, value]) => html`<span><span class="muted">${name}:</span> ${value}</span>`)}</div>` : nothing}
             </div>`
           : nothing}
-        <div slot="header-actions" class="copy">
+        <div class="copy">
           ${request
             ? html`<uui-button compact look="secondary" label="Copy as curl" @click=${() => this.#copy(toCurl(backofficeOrigin(), request), "Copied the curl command.")}></uui-button>
                 <uui-button compact look="secondary" label="Copy as fetch" @click=${() => this.#copy(toFetch(backofficeOrigin(), request), "Copied the fetch call.")}></uui-button>`
             : nothing}
         </div>
+        </div>
         ${offNote ? html`<p class="note">${offNote}</p>` : nothing}
-        ${this.#body()}
-      </uui-box>
+        <div class="body">${this.#body()}</div>
+      </section>
     `;
   }
 
@@ -372,11 +374,38 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
   static styles = [
     UmbTextStyles,
     css`
+      /* The tab fills the workspace, and only the response scrolls, so the controls and the request
+         stay in view. Below 360px of response it falls back to scrolling the page. */
       :host {
         display: flex;
         flex-direction: column;
         gap: var(--uui-size-space-4);
+        height: 100%;
+        box-sizing: border-box;
         padding: var(--uui-size-layout-1);
+      }
+      .panel {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 360px;
+        min-width: 0;
+        border-radius: var(--uui-border-radius);
+        background: var(--uui-color-surface);
+        box-shadow: var(--uui-shadow-depth-1);
+      }
+      .panel-header {
+        display: flex;
+        align-items: center;
+        gap: var(--uui-size-space-4);
+        padding: var(--uui-size-space-4) var(--uui-size-space-5);
+        border-bottom: 1px solid var(--uui-color-divider-standalone);
+      }
+      .body {
+        position: relative;
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
       }
       .toolbar {
         display: flex;
@@ -552,7 +581,6 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       }
       uui-box {
         --uui-box-default-padding: 0;
-        min-width: 0;
       }
       .note {
         margin: 0;
@@ -569,7 +597,8 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         transition: opacity 120ms;
       }
       .raw {
-        height: 70vh;
+        display: block;
+        height: 100%;
       }
       .state {
         display: flex;
