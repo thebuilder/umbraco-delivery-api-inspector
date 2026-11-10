@@ -325,8 +325,8 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
             ? this.#segmented("Changes as", this._changeStyle, [["diff", "Diff", "A red line for published and a green line for the draft"], ["inline", "Inline", "Published struck through, next to the draft"]], (value) => (this._changeStyle = value))
             : nothing}
           <span class="spacer"></span>
-          ${this.#select<Expand>("expand", this._expand, [["none", "None"], ["all", "All"], ["pick", "Pick…"]], (value) => (this._expand = value))}
-          ${this.#select<"all" | "pick">("fields", fieldsChoice, [["all", "All"], ["pick", "Pick…"]], (value) => {
+          ${this.#select<Expand>("Expand", this._expand, [["none", "None"], ["all", "All"], ["pick", "Pick…"]], (value) => (this._expand = value))}
+          ${this.#select<"all" | "pick">("Fields", fieldsChoice, [["all", "All"], ["pick", "Pick…"]], (value) => {
             if (value === "all") { this._fieldsPick = []; this._fieldsOpen = false; } else this._fieldsOpen = true;
           })}
           ${this.#segmented("View", this._view, [["tree", "Tree"], ["raw", "Raw", "Read-only JSON in the code editor"]], (value) => (this._view = value))}
@@ -466,7 +466,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
          so only the box with the value looks clickable. */
       .select {
         display: inline-flex;
-        align-items: center;
+        align-items: baseline;
         gap: 8px;
         font-size: 13px;
         cursor: pointer;
@@ -484,7 +484,10 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         gap: 8px;
         height: 30px;
         box-sizing: border-box;
-        padding: 0 10px;
+        /* Lato's line box carries more room below the baseline than above the capitals, so centred
+           text reads about a pixel high. 2px on top centres the value by eye, and the chevron moves
+           back up to meet it. */
+        padding: 2px 10px 0;
         border-radius: 7px;
         background: var(--uui-color-surface);
         box-shadow: inset 0 0 0 1px var(--uui-color-border);
@@ -501,6 +504,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       .select .chevron {
         width: 10px;
         height: 6px;
+        margin-top: -2px;
         fill: none;
         stroke: var(--uui-color-text-alt);
         stroke-width: 1.5;

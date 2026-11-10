@@ -22,7 +22,7 @@ For Draft, the document has to be saved. For Published, it has to be published i
 
 ## A property is missing or not expanded
 
-The Delivery API leaves out properties whose property editor it cannot output, and returns linked items as references unless `expand` asks for more. Set **expand** to All, or pick the property, and check that its property editor is supported by the Delivery API.
+The Delivery API leaves out properties whose property editor it cannot output, and returns linked items as references unless `expand` asks for more. Set **Expand** to All, or pick the property, and check that its property editor is supported by the Delivery API.
 
 ## The output differs from my frontend's
 
