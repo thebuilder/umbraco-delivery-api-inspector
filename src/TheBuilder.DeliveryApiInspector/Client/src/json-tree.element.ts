@@ -37,6 +37,8 @@ export class JsonTreeElement extends LitElement {
   @property({ attribute: false }) data: Json = null;
   /** Draft against published, by path. When set, the tree opens exactly the changed branches. */
   @property({ attribute: false }) changes?: Map<string, Change>;
+  /** How a changed value shows: as a removed and an added line (diff), or old and new on one line (inline). */
+  @property() changeStyle: "diff" | "inline" = "diff";
   /** How many levels are open, where a row has not been opened or closed by hand. */
   @property({ type: Number }) depth = 3;
   /** Text to search keys and values for, or a path such as properties.image[0].url to jump to. */
@@ -211,8 +213,10 @@ export class JsonTreeElement extends LitElement {
       const keyString = pathKey(path);
       if (searching && !this.#keep.has(keyString)) return;
       const change = this.changes?.get(keyString);
+      // In diff style a changed value is a published line taken away and a draft line added.
+      const asLines = change?.kind === "changed" && this.changeStyle === "diff" && !isContainer(value);
       const hit = (searching && matches(key, value, this.query.trim())) || (this.#jump && keyString === pathKey(this.#jump));
-      const classes = ["row", change?.kind ?? "", hit ? "hit" : "", keyString === current ? "current" : ""].join(" ");
+      const classes = ["row", asLines ? "added" : change?.kind ?? "", hit ? "hit" : "", keyString === current ? "current" : ""].join(" ");
       const actions = html`<span class="actions">
         <button type="button" @click=${() => this.#copy(formatPath(path), `Copied ${formatPath(path)}`)}>Copy path</button>
         <button type="button" @click=${() => this.#copy(isContainer(value) ? JSON.stringify(value, null, 2) : String(value), "Copied the value")}>Copy value</button>
@@ -220,9 +224,14 @@ export class JsonTreeElement extends LitElement {
       const keyLabel = typeof key === "number"
         ? html`<span class="index">${key}</span><span class="punct colon">:</span>`
         : html`<span class="key">${this.#highlight(JSON.stringify(key))}</span><span class="punct colon">:</span>`;
-      const before = change?.kind === "changed" ? html`<span class="before" title="Published">${preview(change.before)}</span>` : nothing;
+      const before = change?.kind === "changed" && !asLines ? html`<span class="before" title="Published">${preview(change.before)}</span>` : nothing;
 
       if (!isContainer(value)) {
+        if (asLines) {
+          rows.push(html`<div class="row removed" role="treeitem" aria-level=${level} aria-label="Published" style="--level:${level}">
+            <span class="gutter"></span>${keyLabel}<span class="before">${preview(change.before)}</span>
+          </div>`);
+        }
         rows.push(html`<div class=${classes} data-path=${keyString} role="treeitem" aria-level=${level} tabindex="-1" style="--level:${level}"
           @mouseenter=${isImageUrl(parent, key, value) ? (event: MouseEvent) => this.#showThumb(event, keyString, parent, value) : nothing}
           @mouseleave=${isImageUrl(parent, key, value) ? () => (this._thumb = undefined) : nothing}>
@@ -258,12 +267,12 @@ export class JsonTreeElement extends LitElement {
 
     // The response itself, so the top-level keys sit inside its braces as they do in the JSON.
     const [rootStart, rootEnd] = brackets(this.data);
-    rows.push(html`<div class="row root" aria-hidden="true" style="--level:0"><span class="gutter"></span><span class="punct">${rootStart}</span></div>`);
+    rows.push(html`<div class="row root" aria-hidden="true" style="--level:0"><span class="punct">${rootStart}</span></div>`);
     for (const [key, child] of children(this.data)) walk(key, child, [key], 1, this.data, undefined);
     for (const [removedKey, removed] of this.#removedByParent.get(pathKey([])) ?? []) {
       rows.push(html`<div class="row removed" style="--level:1"><span class="gutter"></span><span class="key">${JSON.stringify(removedKey)}</span><span class="punct colon">:</span><span class="before">${preview(removed.before)}</span><span class="meta">Only in published</span></div>`);
     }
-    rows.push(html`<div class="row root" aria-hidden="true" style="--level:0"><span class="gutter"></span><span class="punct">${rootEnd}</span></div>`);
+    rows.push(html`<div class="row root" aria-hidden="true" style="--level:0"><span class="punct">${rootEnd}</span></div>`);
     if (searching && !this.#hits.length) {
       return html`<p class="empty">Nothing matches “${this.query.trim()}”.</p>`;
     }
@@ -301,10 +310,10 @@ export class JsonTreeElement extends LitElement {
   static styles = css`
     :host {
       display: block;
-      --json-key: var(--uui-color-text);
-      --json-string: #b4441f;
-      --json-number: #1a6fc2;
-      --json-boolean: #7a3fb3;
+      --json-key: #3730a3;
+      --json-string: #0f7a55;
+      --json-number: #b45309;
+      --json-boolean: #9333ea;
       --json-null: var(--uui-color-text-alt);
       --json-guide: var(--uui-color-divider-standalone, #e9e9eb);
       --json-added: color-mix(in srgb, var(--uui-color-positive, #0b8152) 14%, transparent);
@@ -317,9 +326,10 @@ export class JsonTreeElement extends LitElement {
       color: var(--uui-color-text);
     }
     :host([theme="dark"]) {
-      --json-string: #f0a07a;
-      --json-number: #7cb8ff;
-      --json-boolean: #c79bff;
+      --json-key: #a5b4fc;
+      --json-string: #6ee7b7;
+      --json-number: #fbbf24;
+      --json-boolean: #d8b4fe;
     }
     /* The tab's panel scrolls the tree both ways; rows stretch to the widest one so hover and
        highlights span the whole line. */
@@ -334,14 +344,14 @@ export class JsonTreeElement extends LitElement {
       display: flex;
       align-items: baseline;
       white-space: nowrap;
-      /* Every level sits one step inside the response's own braces. */
-      padding-left: calc(var(--level) * 18px);
+      /* The response's own braces sit in the first chevron column, so the top-level keys line up
+         just inside them without an extra step of indent. */
+      padding-left: calc(max(var(--level) - 1, 0) * 18px);
       padding-right: var(--uui-size-space-4, 12px);
-      /* One guide per open parent, centred under that parent's 18px chevron column. The root's
-         braces have no chevron, so the guides start one column in. */
+      /* One guide per open parent, centred under that parent's 18px chevron column. */
       background-image: repeating-linear-gradient(to right, transparent 0 8.5px, var(--json-guide) 8.5px 9.5px, transparent 9.5px 18px);
       background-size: calc((var(--level) - 1) * 18px) 100%;
-      background-position: 18px 0;
+      background-position: 0 0;
       background-repeat: no-repeat;
       outline: none;
     }
@@ -370,6 +380,7 @@ export class JsonTreeElement extends LitElement {
       color: var(--uui-color-text);
     }
     .key { color: var(--json-key); }
+    .root .punct { padding-left: 4px; }
     .index, .punct, .meta { color: var(--uui-color-text-alt); }
     .colon { margin-right: 0.6ch; }
     .meta { margin-left: 6px; font-family: var(--uui-font-family); font-size: 11px; }
@@ -384,8 +395,8 @@ export class JsonTreeElement extends LitElement {
       padding: 0 7px;
       border-radius: 99px;
       font: 600 10.5px/1.6 var(--uui-font-family);
-      background: var(--uui-color-surface-alt);
-      color: var(--uui-color-text-alt);
+      background: color-mix(in srgb, var(--json-key) 10%, transparent);
+      color: var(--json-key);
     }
     .actions {
       display: none;

@@ -22,6 +22,7 @@ interface Saved {
   depth?: number;
   view?: "tree" | "raw";
   expand?: Expand;
+  changeStyle?: "diff" | "inline";
 }
 
 const storageKey = "thebuilder.delivery-api-inspector";
@@ -55,6 +56,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
   @state() private _fieldsPick: string[] = [];
   @state() private _fieldsOpen = false;
   @state() private _view: "tree" | "raw" = "tree";
+  @state() private _changeStyle: "diff" | "inline" = "diff";
   @state() private _depth = 3;
   @state() private _query = "";
   @state() private _hits?: TreeHits;
@@ -66,6 +68,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
   @state() private _loading = false;
   @state() private _theme: "light" | "dark" = "light";
   @state() private _url?: UrlParts;
+  @state() private _headersOpen = false;
 
   @query("#url") private _urlElement?: HTMLElement;
 
@@ -80,6 +83,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
     this._mode = saved.mode ?? "draft";
     this._depth = saved.depth ?? 3;
     this._view = saved.view ?? "tree";
+    this._changeStyle = saved.changeStyle ?? "diff";
     this._expand = saved.expand === "pick" ? "none" : (saved.expand ?? "none");
 
     this.consumeContext(UMB_NOTIFICATION_CONTEXT, (context) => (this.#notification = context));
@@ -144,9 +148,9 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       this.#resize.disconnect();
       this.#resize.observe(this._urlElement);
     }
-    if (["_mode", "_depth", "_view", "_expand"].some((name) => changed.has(name))) {
+    if (["_mode", "_depth", "_view", "_expand", "_changeStyle"].some((name) => changed.has(name))) {
       try {
-        localStorage.setItem(storageKey, JSON.stringify({ mode: this._mode, depth: this._depth, view: this._view, expand: this._expand } satisfies Saved));
+        localStorage.setItem(storageKey, JSON.stringify({ mode: this._mode, depth: this._depth, view: this._view, expand: this._expand, changeStyle: this._changeStyle } satisfies Saved));
       } catch {
         // Private windows and blocked storage: the choices just are not remembered.
       }
@@ -300,6 +304,9 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
                 ${this._mode === "changes" && this._changes ? html`<span class="count">${this._changes.size}</span>` : nothing}</button>
             </div>`
           : nothing}
+        ${isContent && this._mode === "changes" && this._view === "tree"
+          ? this.#segmented("Changes as", this._changeStyle, [["diff", "Diff", "A red line for published and a green line for the draft"], ["inline", "Inline", "Published struck through, next to the draft"]], (value) => (this._changeStyle = value))
+          : nothing}
         ${this.#segmented<Expand>("expand", this._expand, [["none", "None", "No expand parameter"], ["all", "All", "expand=properties[$all]"], ["pick", "Pick…", "Choose the properties to expand"]], (value) => (this._expand = value))}
         <div class="segmented" role="group" aria-label="fields">
           <span class="label" aria-hidden="true">fields</span>
@@ -330,15 +337,22 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
                 <span id="url" class="url" title=${fullUrl(request)}>${this._url
                   ? html`<span class="muted">${this._url.lead}</span>${this._url.id}<span class="query">${this._url.query}</span>`
                   : fullUrl(request)}</span>
+                ${request.headers.length
+                  ? html`<button type="button" class="headers-toggle" aria-expanded=${String(this._headersOpen)} aria-controls="headers"
+                      title=${request.headers.map(([name, value]) => `${name}: ${value}`).join("\n")}
+                      @click=${() => (this._headersOpen = !this._headersOpen)}>${request.headers.length} ${request.headers.length === 1 ? "header" : "headers"}<span aria-hidden="true">${this._headersOpen ? "▴" : "▾"}</span></button>`
+                  : nothing}
                 ${this._response ? html`<span class="stats">${formatBytes(this._response.bytes)}${this._response.buildMs !== undefined ? ` · ${Math.round(this._response.buildMs)} ms` : ""}</span>` : nothing}
               </div>
-              ${request.headers.length ? html`<div class="headers">${request.headers.map(([name, value]) => html`<span><span class="muted">${name}:</span> ${value}</span>`)}</div>` : nothing}
+              ${request.headers.length && this._headersOpen
+                ? html`<div class="headers" id="headers">${request.headers.map(([name, value]) => html`<span><span class="muted">${name}:</span> ${value}</span>`)}</div>`
+                : nothing}
             </div>`
           : nothing}
         <div class="copy">
           ${request
-            ? html`<uui-button compact look="secondary" label="Copy as curl" @click=${() => this.#copy(toCurl(backofficeOrigin(), request), "Copied the curl command.")}></uui-button>
-                <uui-button compact look="secondary" label="Copy as fetch" @click=${() => this.#copy(toFetch(backofficeOrigin(), request), "Copied the fetch call.")}></uui-button>`
+            ? html`<button type="button" class="copy-button" @click=${() => this.#copy(toCurl(backofficeOrigin(), request), "Copied the curl command.")}><uui-icon name="icon-documents"></uui-icon>Copy as curl</button>
+                <button type="button" class="copy-button" @click=${() => this.#copy(toFetch(backofficeOrigin(), request), "Copied the fetch call.")}><uui-icon name="icon-documents"></uui-icon>Copy as fetch</button>`
             : nothing}
         </div>
         </div>
@@ -366,7 +380,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       return html`<umb-code-editor class="raw" language="json" readonly .code=${JSON.stringify(data, null, 2)}></umb-code-editor>`;
     }
     return html`<thebuilder-json-tree class=${this._loading ? "loading" : ""} theme=${this._theme} .data=${data} .changes=${this._mode === "changes" ? this._changes : undefined}
-      .depth=${this._depth} .query=${this._query}
+      .depth=${this._depth} .query=${this._query} changeStyle=${this._changeStyle}
       @hits=${(event: CustomEvent<TreeHits>) => (this._hits = event.detail)}
       @copied=${(event: CustomEvent<string>) => this.#notification?.peek("positive", { data: { message: event.detail } })}></thebuilder-json-tree>`;
   }
@@ -383,6 +397,9 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         height: 100%;
         box-sizing: border-box;
         padding: var(--uui-size-layout-1);
+        --inspector-line: color-mix(in srgb, var(--uui-color-border) 75%, transparent);
+        --inspector-track: color-mix(in srgb, var(--uui-color-border) 30%, var(--uui-color-surface));
+        --inspector-code: color-mix(in srgb, var(--uui-color-background) 45%, var(--uui-color-surface));
       }
       .panel {
         display: flex;
@@ -390,16 +407,19 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         flex: 1;
         min-height: 360px;
         min-width: 0;
-        border-radius: var(--uui-border-radius);
-        background: var(--uui-color-surface);
-        box-shadow: var(--uui-shadow-depth-1);
+        overflow: hidden;
+        border-radius: 10px;
+        background: var(--inspector-code);
+        box-shadow: 0 0 0 1px var(--inspector-line), 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px -12px rgb(0 0 0 / 0.18);
       }
       .panel-header {
         display: flex;
         align-items: center;
         gap: var(--uui-size-space-4);
-        padding: var(--uui-size-space-4) var(--uui-size-space-5);
-        border-bottom: 1px solid var(--uui-color-divider-standalone);
+        min-height: 36px;
+        padding: var(--uui-size-space-3) var(--uui-size-space-3) var(--uui-size-space-3) var(--uui-size-space-5);
+        background: var(--uui-color-surface);
+        border-bottom: 1px solid var(--inspector-line);
       }
       .body {
         position: relative;
@@ -413,28 +433,29 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         gap: var(--uui-size-space-3);
         align-items: center;
       }
+      /* A track with the chosen option raised out of it, so the current choice reads at a glance. */
       .segmented {
         display: inline-flex;
         align-items: stretch;
-        border: 1px solid var(--uui-color-border);
-        border-radius: var(--uui-border-radius);
-        background: var(--uui-color-surface);
-        overflow: hidden;
+        gap: 2px;
+        padding: 3px;
+        border-radius: 8px;
+        background: var(--inspector-track);
+        box-shadow: inset 0 0 0 1px var(--inspector-line);
       }
       .segmented .label {
         display: inline-flex;
         align-items: center;
-        padding: 0 var(--uui-size-space-3);
+        padding: 0 8px 0 6px;
         font: 12px var(--uui-font-monospace, monospace);
         color: var(--uui-color-text-alt);
-        background: var(--uui-color-background);
-        border-right: 1px solid var(--uui-color-border);
       }
       .segmented[aria-label="Open levels"] .label {
         font-family: var(--uui-font-family);
       }
       .segmented[aria-label="Version"] .label,
-      .segmented[aria-label="View"] .label {
+      .segmented[aria-label="View"] .label,
+      .segmented[aria-label="Changes as"] .label {
         display: none;
       }
       .segmented button {
@@ -443,20 +464,21 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         display: inline-flex;
         gap: 6px;
         align-items: center;
-        padding: 5px 11px;
+        padding: 4px 10px;
+        border-radius: 6px;
         font-size: 13px;
         color: var(--uui-color-text-alt);
-      }
-      .segmented button + button {
-        border-left: 1px solid var(--uui-color-border);
+        transition: background-color 120ms, color 120ms, box-shadow 120ms;
       }
       .segmented button[aria-pressed="true"] {
-        background: var(--uui-color-surface-emphasis);
+        background: var(--uui-color-surface);
         color: var(--uui-color-text);
         font-weight: 600;
+        box-shadow: 0 1px 2px rgb(0 0 0 / 0.12), 0 0 0 1px var(--inspector-line);
       }
-      .segmented button:hover:not([disabled]) {
+      .segmented button:hover:not([disabled]):not([aria-pressed="true"]) {
         color: var(--uui-color-text);
+        background: color-mix(in srgb, var(--uui-color-surface) 55%, transparent);
       }
       .segmented button[disabled] {
         cursor: default;
@@ -464,7 +486,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       }
       .segmented button:focus-visible {
         outline: 2px solid var(--uui-color-focus);
-        outline-offset: -2px;
+        outline-offset: 0;
       }
       .dot {
         width: 7px;
@@ -531,7 +553,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       }
       .request {
         display: grid;
-        gap: 4px;
+        gap: 6px;
         min-width: 0;
         flex: 1;
         font: 12.5px/1.5 var(--uui-font-monospace, monospace);
@@ -539,12 +561,17 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       .line {
         display: flex;
         gap: var(--uui-size-space-3);
-        align-items: baseline;
+        align-items: center;
         min-width: 0;
       }
       .method {
+        padding: 1px 7px;
+        border-radius: 5px;
         font-weight: 700;
+        font-size: 11.5px;
+        letter-spacing: 0.02em;
         color: var(--uui-color-positive);
+        background: color-mix(in srgb, var(--uui-color-positive) 12%, transparent);
       }
       .url {
         flex: 1;
@@ -563,21 +590,66 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         font-family: var(--uui-font-family);
         font-size: 12px;
       }
+      .headers-toggle {
+        all: unset;
+        cursor: pointer;
+        display: inline-flex;
+        gap: 4px;
+        align-items: center;
+        white-space: nowrap;
+        padding: 1px 8px;
+        border-radius: 99px;
+        font: 12px var(--uui-font-family);
+        color: var(--uui-color-text-alt);
+        box-shadow: inset 0 0 0 1px var(--inspector-line);
+      }
+      .headers-toggle:hover,
+      .headers-toggle[aria-expanded="true"] {
+        color: var(--uui-color-text);
+        background: var(--inspector-track);
+      }
+      .headers-toggle:focus-visible {
+        outline: 2px solid var(--uui-color-focus);
+      }
       .headers {
         display: flex;
         flex-wrap: wrap;
         gap: 6px;
-        padding-left: 34px;
       }
       .headers > span {
-        padding: 0 6px;
-        border-radius: 3px;
+        padding: 0 7px;
+        border-radius: 5px;
         font-size: 11.5px;
-        background: var(--uui-color-surface-alt);
+        background: var(--inspector-track);
       }
       .copy {
         display: flex;
         gap: var(--uui-size-space-2);
+      }
+      .copy-button {
+        all: unset;
+        cursor: pointer;
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+        white-space: nowrap;
+        padding: 5px 10px;
+        border-radius: 7px;
+        font: 500 12.5px var(--uui-font-family);
+        color: var(--uui-color-text);
+        background: var(--uui-color-surface);
+        box-shadow: 0 0 0 1px var(--inspector-line), 0 1px 2px rgb(0 0 0 / 0.06);
+        transition: background-color 120ms, box-shadow 120ms;
+      }
+      .copy-button uui-icon {
+        font-size: 13px;
+        color: var(--uui-color-text-alt);
+      }
+      .copy-button:hover {
+        background: var(--inspector-track);
+      }
+      .copy-button:focus-visible {
+        outline: 2px solid var(--uui-color-focus);
       }
       uui-box {
         --uui-box-default-padding: 0;
@@ -590,7 +662,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         font-size: 13px;
       }
       thebuilder-json-tree {
-        padding: 0 var(--uui-size-space-3);
+        padding: var(--uui-size-space-2) var(--uui-size-space-3);
       }
       thebuilder-json-tree.loading {
         opacity: 0.55;

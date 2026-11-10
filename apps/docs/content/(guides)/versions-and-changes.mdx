@@ -13,9 +13,14 @@ A document has up to two versions in the Delivery API: the draft, which `Preview
 
 ## Changes
 
-The Changes view shows the draft's tree with every difference marked: added values, removed values with a strike-through, and changed values next to what they were. Branches that contain a change open by themselves, so you see every change without opening the tree by hand.
+The Changes view shows the draft's tree with every difference marked, and opens the branches that contain a change, so you see every change without opening the tree by hand.
 
-![The Changes view marks a changed summary and the values that publishing would add or remove.](../screenshots/changes.png)
+- **Diff**, the default, shows a changed value as two lines, like a code review: the published value in red, then the draft's in green.
+- **Inline** keeps a changed value on one line, the published value struck through next to the draft's.
+
+Values only in the draft are green, and values only in the published version are red, either way.
+
+![The Changes view as a diff: the published summary in red above the draft's in green.](../screenshots/changes.png)
 
 Save a change and the tab reloads by itself. So does a publish.
 
