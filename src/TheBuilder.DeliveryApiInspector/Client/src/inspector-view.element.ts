@@ -256,8 +256,8 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
   #segmented<T extends string | number>(label: string, value: T, options: [T, string, string?][], set: (value: T) => void, disabled: (value: T) => boolean = () => false) {
     return html`<div class="segmented" role="group" aria-label=${label}>
       <span class="label" aria-hidden="true">${label}</span>
-      ${options.map(([option, text, title]) => html`<button type="button" aria-pressed=${String(option === value)} title=${title ?? text}
-        ?disabled=${disabled(option)} @click=${() => set(option)}>${text}</button>`)}
+      <span class="track">${options.map(([option, text, title]) => html`<button type="button" aria-pressed=${String(option === value)} title=${title ?? text}
+        ?disabled=${disabled(option)} @click=${() => set(option)}>${text}</button>`)}</span>
     </div>`;
   }
 
@@ -293,7 +293,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
     return html`
       <div class="toolbar">
         ${isContent
-          ? html`<div class="segmented" role="group" aria-label="Version">
+          ? html`<div class="segmented" role="group" aria-label="Version"><span class="track">
               <button type="button" aria-pressed=${String(this._mode === "draft")} @click=${() => (this._mode = "draft")}
                 title=${draftDiffers ? "The draft has changes that are not published" : "The latest saved version, as Preview: true returns it"}>
                 ${draftDiffers ? html`<span class="dot" aria-hidden="true"></span>` : nothing}Draft</button>
@@ -302,7 +302,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
               <button type="button" aria-pressed=${String(this._mode === "changes")} ?disabled=${!this._published}
                 title="What publishing the draft would change" @click=${() => (this._mode = "changes")}>Changes
                 ${this._mode === "changes" && this._changes ? html`<span class="count">${this._changes.size}</span>` : nothing}</button>
-            </div>`
+            </span></div>`
           : nothing}
         ${isContent && this._mode === "changes" && this._view === "tree"
           ? this.#segmented("Changes as", this._changeStyle, [["diff", "Diff", "A red line for published and a green line for the draft"], ["inline", "Inline", "Published struck through, next to the draft"]], (value) => (this._changeStyle = value))
@@ -310,8 +310,8 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         ${this.#segmented<Expand>("expand", this._expand, [["none", "None", "No expand parameter"], ["all", "All", "expand=properties[$all]"], ["pick", "Pick…", "Choose the properties to expand"]], (value) => (this._expand = value))}
         <div class="segmented" role="group" aria-label="fields">
           <span class="label" aria-hidden="true">fields</span>
-          <button type="button" aria-pressed=${String(!this._fieldsPick.length && !this._fieldsOpen)} title="Every property" @click=${() => { this._fieldsPick = []; this._fieldsOpen = false; }}>All</button>
-          <button type="button" aria-pressed=${String(this._fieldsOpen || !!this._fieldsPick.length)} title="Choose the properties to return" @click=${() => (this._fieldsOpen = !this._fieldsOpen)}>Pick…</button>
+          <span class="track"><button type="button" aria-pressed=${String(!this._fieldsPick.length && !this._fieldsOpen)} title="Every property" @click=${() => { this._fieldsPick = []; this._fieldsOpen = false; }}>All</button>
+          <button type="button" aria-pressed=${String(this._fieldsOpen || !!this._fieldsPick.length)} title="Choose the properties to return" @click=${() => (this._fieldsOpen = !this._fieldsOpen)}>Pick…</button></span>
         </div>
         ${this.#segmented("View", this._view, [["tree", "Tree"], ["raw", "Raw", "Read-only JSON in the code editor"]], (value) => (this._view = value))}
       </div>
@@ -340,7 +340,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
                 ${request.headers.length
                   ? html`<button type="button" class="headers-toggle" aria-expanded=${String(this._headersOpen)} aria-controls="headers"
                       title=${request.headers.map(([name, value]) => `${name}: ${value}`).join("\n")}
-                      @click=${() => (this._headersOpen = !this._headersOpen)}>${request.headers.length} ${request.headers.length === 1 ? "header" : "headers"}<span aria-hidden="true">${this._headersOpen ? "▴" : "▾"}</span></button>`
+                      @click=${() => (this._headersOpen = !this._headersOpen)}>${request.headers.length} ${request.headers.length === 1 ? "header" : "headers"}<span class="caret" aria-hidden="true" ?data-open=${this._headersOpen}></span></button>`
                   : nothing}
                 ${this._response ? html`<span class="stats">${formatBytes(this._response.bytes)}${this._response.buildMs !== undefined ? ` · ${Math.round(this._response.buildMs)} ms` : ""}</span>` : nothing}
               </div>
@@ -414,7 +414,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       }
       .panel-header {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         gap: var(--uui-size-space-4);
         min-height: 36px;
         padding: var(--uui-size-space-3) var(--uui-size-space-3) var(--uui-size-space-3) var(--uui-size-space-5);
@@ -434,7 +434,13 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         align-items: center;
       }
       /* A track with the chosen option raised out of it, so the current choice reads at a glance. */
+      /* The label sits outside the track as plain text, so only the options look clickable. */
       .segmented {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .segmented .track {
         display: inline-flex;
         align-items: stretch;
         gap: 2px;
@@ -444,14 +450,8 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         box-shadow: inset 0 0 0 1px var(--inspector-line);
       }
       .segmented .label {
-        display: inline-flex;
-        align-items: center;
-        padding: 0 8px 0 6px;
-        font: 12px var(--uui-font-monospace, monospace);
+        font-size: 13px;
         color: var(--uui-color-text-alt);
-      }
-      .segmented[aria-label="Open levels"] .label {
-        font-family: var(--uui-font-family);
       }
       .segmented[aria-label="Version"] .label,
       .segmented[aria-label="View"] .label,
@@ -558,10 +558,12 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         flex: 1;
         font: 12.5px/1.5 var(--uui-font-monospace, monospace);
       }
+      /* As tall as the copy buttons, so the URL lines up with them whether the headers are open or not. */
       .line {
         display: flex;
         gap: var(--uui-size-space-3);
         align-items: center;
+        min-height: 30px;
         min-width: 0;
       }
       .method {
@@ -594,12 +596,12 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         all: unset;
         cursor: pointer;
         display: inline-flex;
-        gap: 4px;
+        gap: 7px;
         align-items: center;
         white-space: nowrap;
-        padding: 1px 8px;
-        border-radius: 99px;
-        font: 12px var(--uui-font-family);
+        padding: 5px 10px 5px 12px;
+        border-radius: 7px;
+        font: 500 12.5px/1.2 var(--uui-font-family);
         color: var(--uui-color-text-alt);
         box-shadow: inset 0 0 0 1px var(--inspector-line);
       }
@@ -607,6 +609,21 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       .headers-toggle[aria-expanded="true"] {
         color: var(--uui-color-text);
         background: var(--inspector-track);
+      }
+      /* A thin chevron drawn from two borders, lighter than a text triangle. */
+      .caret {
+        width: 5px;
+        height: 5px;
+        margin-top: -3px;
+        border-right: 1.5px solid currentColor;
+        border-bottom: 1.5px solid currentColor;
+        transform: rotate(45deg);
+        opacity: 0.7;
+        transition: transform 120ms, margin 120ms;
+      }
+      .caret[data-open] {
+        margin-top: 3px;
+        transform: rotate(-135deg);
       }
       .headers-toggle:focus-visible {
         outline: 2px solid var(--uui-color-focus);

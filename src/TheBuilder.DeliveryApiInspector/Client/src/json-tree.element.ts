@@ -279,7 +279,7 @@ export class JsonTreeElement extends LitElement {
     const thumb = this._thumb
       ? html`<img class="thumb" popover="manual" alt="" src=${this._thumb.src} style="top:${this._thumb.top}px;left:${this._thumb.left}px" />`
       : nothing;
-    return html`${thumb}<div class="tree" role="tree" aria-label="Delivery API response" @keydown=${this.#onKeydown}
+    return html`${thumb}<div class=${this.changes?.size ? "tree diff" : "tree"} role="tree" aria-label="Delivery API response" @keydown=${this.#onKeydown}
       @focusin=${(event: FocusEvent) => (event.target as HTMLElement).setAttribute("tabindex", "0")}
       @focusout=${(event: FocusEvent) => (event.target as HTMLElement).setAttribute("tabindex", "-1")}>
       ${rows}
@@ -420,12 +420,24 @@ export class JsonTreeElement extends LitElement {
     }
     .actions button:hover { color: var(--uui-color-text); border-color: var(--uui-color-border-emphasis); }
     .actions button:focus-visible { outline: 2px solid var(--uui-color-focus); }
-    .added { background-color: var(--json-added); }
-    .removed { background-color: var(--json-removed); }
-    .changed { background-color: var(--json-changed); }
+    /* With changes, the tree gets a column of its own at the left for − and +, outside the
+       indentation, as in a code review. A changed row's tint runs into that column, and the indent
+       guides carry on through it a shade darker so they still read on the tint. */
+    .tree.diff { padding-left: 16px; }
+    .added, .removed, .changed {
+      background-color: var(--diff-tint);
+      box-shadow: -16px 0 0 var(--diff-tint);
+      --json-guide: color-mix(in srgb, var(--diff-ink) 28%, transparent);
+    }
+    .added:focus-visible, .removed:focus-visible, .changed:focus-visible {
+      box-shadow: -16px 0 0 var(--diff-tint), inset 0 0 0 2px var(--uui-color-focus);
+    }
+    .added { --diff-tint: var(--json-added); --diff-ink: var(--uui-color-positive, #0b8152); }
+    .removed { --diff-tint: var(--json-removed); --diff-ink: var(--uui-color-danger, #d42054); }
+    .changed { --diff-tint: var(--json-changed); --diff-ink: var(--uui-color-warning-contrast, #8a5a00); }
     .added::before, .removed::before, .changed::before {
       position: absolute;
-      left: 2px;
+      left: -12px;
       font-weight: 600;
     }
     .added::before { content: "+"; color: var(--uui-color-positive); }
