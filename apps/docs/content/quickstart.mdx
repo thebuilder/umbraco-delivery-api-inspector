@@ -1,0 +1,53 @@
+---
+title: Quickstart
+description: Install Delivery API Inspector and open the API tab on a document.
+seo:
+  image: /og/quickstart.png
+---
+
+<Steps>
+<Step title="Install the package">
+
+```sh
+dotnet add package TheBuilder.DeliveryApiInspector --prerelease
+```
+
+The package has no tables and no migrations. It needs the Delivery API in `Program.cs`, which most headless sites already have:
+
+```cs Program.cs
+builder.CreateUmbracoBuilder()
+    .AddBackOffice()
+    .AddWebsite()
+    .AddDeliveryApi()
+    .AddComposers()
+    .Build();
+```
+
+</Step>
+<Step title="Open a document">
+
+Start the site, sign in as an administrator, and open any document that has been saved. The **API** tab sits next to Content and Info. It shows the draft, as a frontend with `Preview: true` and the API key would get it.
+
+</Step>
+<Step title="Let other developers in">
+
+Only administrators see the tab until you name other user groups:
+
+```json appsettings.json
+{
+  "DeliveryApiInspector": {
+    "UserGroups": ["admin", "developers"]
+  }
+}
+```
+
+See [Access](/access) for what a user can see once they have the tab.
+
+</Step>
+</Steps>
+
+## Next
+
+- [Reading a response](/reading-a-response): search, levels, `expand` and `fields`.
+- [Versions and changes](/versions-and-changes): draft, published, and what a publish would change.
+- [Configuration](/configuration): every setting.

@@ -1,0 +1,16 @@
+---
+title: Access
+description: Who sees the API tab, and what they can see with it.
+seo:
+  image: /og/access.png
+---
+
+The API tab is for developers. By default only administrators see it. Name other groups in [`UserGroups`](/configuration) to let them in.
+
+A user with the tab sees an item's output only when they could browse the item anyway: the document needs the Browse permission for that user, and the item has to be inside the user's start nodes. Otherwise the tab answers that the item does not exist, or that they cannot browse it.
+
+The package's API is at `/umbraco/delivery-api-inspector/api`, behind the backoffice's own sign-in, and is left out of the Management API's OpenAPI document. It builds the response on the server, so the browser never needs the Delivery API key, and the key is never sent to it.
+
+## Production
+
+The tab only reads, so it is safe on a production site. To turn it off there, set `DeliveryApiInspector:Enabled` to `false` for that environment.

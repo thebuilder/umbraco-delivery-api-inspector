@@ -1,0 +1,20 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+/umbraco/
+samples/**/umbraco/Data/
+samples/**/umbraco/Logs/
+samples/**/umbraco/models/
+samples/**/appsettings-schema*.json
+samples/**/umbraco-package-schema.json
+samples/**/wwwroot/media/
+/artifacts/
+.DS_Store
+# The backoffice client's build output; `dotnet pack` builds it.
+src/TheBuilder.DeliveryApiInspector/wwwroot/App_Plugins/TheBuilder.DeliveryApiInspector/
+
+# The docs site: Blume's build output, and the Open Graph cards it draws on every build.
+apps/docs/.blume/
+apps/docs/public/og/
+apps/docs/public/opengraph-image.png

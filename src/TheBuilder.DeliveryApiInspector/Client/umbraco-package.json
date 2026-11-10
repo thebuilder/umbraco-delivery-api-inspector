@@ -1,0 +1,13 @@
+{
+  "id": "TheBuilder.DeliveryApiInspector",
+  "name": "Delivery API Inspector",
+  "allowTelemetry": false,
+  "extensions": [
+    {
+      "name": "Delivery API Inspector Bundle",
+      "alias": "TheBuilder.DeliveryApiInspector.Bundle",
+      "type": "bundle",
+      "js": "/App_Plugins/TheBuilder.DeliveryApiInspector/delivery-api-inspector.js"
+    }
+  ]
+}

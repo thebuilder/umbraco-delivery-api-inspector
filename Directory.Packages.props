@@ -1,0 +1,30 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Floating versions, so CI can build against the newest release of each major. -->
+    <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
+    <!-- The Umbraco versions the package supports. 17.4.0 is the floor the other TheBuilder packages share; earlier 17 releases bring
+         MailKit and MimeKit with advisories. CI overrides it to build the lowest release and
+         the newest of each major. -->
+    <UmbracoVersion Condition="'$(UmbracoVersion)' == ''">[17.4.0,19.0.0)</UmbracoVersion>
+    <!-- The sample site runs a fixed release rather than the lowest the range allows. Pass
+         -p:SampleUmbracoVersion=18.3.1 to run it on Umbraco 18. -->
+    <SampleUmbracoVersion Condition="'$(SampleUmbracoVersion)' == ''">17.8.1</SampleUmbracoVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Build time only: fails the build when the public C# API differs from the PublicAPI.*.txt
+         files beside each shipped project. See AGENTS.md. -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0" />
+    <!-- Umbraco 17 brings MessagePack and System.Security.Cryptography.Pkcs/Xml below their fixes
+         (NU1902, NU1903), so the package and the sample lift them for every site. -->
+    <PackageVersion Include="MessagePack" Version="3.1.12" />
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
+    <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.OpenApi" Version="2.12.2" />
+    <!-- The sample only, which runs SQLite. -->
+    <PackageVersion Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.14" />
+    <PackageVersion Include="Umbraco.Cms" Version="$(SampleUmbracoVersion)" />
+    <PackageVersion Include="Umbraco.Cms.Api.Delivery" Version="$(UmbracoVersion)" />
+    <PackageVersion Include="Umbraco.Cms.Api.Management" Version="$(UmbracoVersion)" />
+  </ItemGroup>
+</Project>

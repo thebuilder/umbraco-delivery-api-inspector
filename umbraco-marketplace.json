@@ -1,0 +1,48 @@
+{
+  "$schema": "https://marketplace.umbraco.com/umbraco-marketplace-schema.json",
+  "AuthorDetails": {
+    "Name": "Daniel Schmidt",
+    "Description": "Lead Engineer at Charlie Tango, working on headless Umbraco sites and the tools around them.",
+    "Url": "https://github.com/thebuilder",
+    "ImageUrl": "https://github.com/thebuilder.png",
+    "SyncContributorsFromRepository": true
+  },
+  "Category": "Developer Tools",
+  "AlternateCategory": "Headless",
+  "Title": "Delivery API Inspector",
+  "Description": "An API tab on every document and media item in the backoffice, showing exactly what the Delivery API returns for it.",
+  "DocumentationUrl": "https://delivery-api-inspector.thebuilder.dk/",
+  "IssueTrackerUrl": "https://github.com/thebuilder/umbraco-delivery-api-inspector/issues",
+  "LicenseTypes": [
+    "Free"
+  ],
+  "PackageType": "Package",
+  "Screenshots": [
+    {
+      "ImageUrl": "https://raw.githubusercontent.com/thebuilder/umbraco-delivery-api-inspector/refs/heads/main/apps/docs/content/screenshots/document.png",
+      "Caption": "The API tab shows the draft as a frontend would get it, with the request on one line above the tree."
+    },
+    {
+      "ImageUrl": "https://raw.githubusercontent.com/thebuilder/umbraco-delivery-api-inspector/refs/heads/main/apps/docs/content/screenshots/changes.png",
+      "Caption": "The Changes view shows what publishing the draft would change."
+    },
+    {
+      "ImageUrl": "https://raw.githubusercontent.com/thebuilder/umbraco-delivery-api-inspector/refs/heads/main/apps/docs/content/screenshots/search.png",
+      "Caption": "Search filters the tree to the keys and values that match."
+    },
+    {
+      "ImageUrl": "https://raw.githubusercontent.com/thebuilder/umbraco-delivery-api-inspector/refs/heads/main/apps/docs/content/screenshots/media.png",
+      "Caption": "Media items get the tab too, with a thumbnail when you hover a URL."
+    }
+  ],
+  "Tags": [
+    "Delivery API",
+    "headless",
+    "json",
+    "preview",
+    "developer tools",
+    "debugging",
+    "content delivery",
+    "backoffice"
+  ]
+}

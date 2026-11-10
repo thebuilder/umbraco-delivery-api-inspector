@@ -1,0 +1,14 @@
+{
+  "name": "thebuilder-delivery-api-inspector-workspace",
+  "private": true,
+  "packageManager": "pnpm@11.13.1",
+  "scripts": {
+    "build": "pnpm --dir src/TheBuilder.DeliveryApiInspector/Client build",
+    "typecheck": "pnpm --dir src/TheBuilder.DeliveryApiInspector/Client typecheck",
+    "test": "pnpm --dir src/TheBuilder.DeliveryApiInspector/Client test",
+    "e2e": "pnpm --dir tests/e2e test",
+    "docs:dev": "pnpm --filter @thebuilder/delivery-api-inspector-docs dev",
+    "docs:build": "pnpm --filter @thebuilder/delivery-api-inspector-docs build",
+    "docs:screenshots": "pnpm --filter @thebuilder/delivery-api-inspector-docs screenshots"
+  }
+}

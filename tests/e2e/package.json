@@ -1,0 +1,8 @@
+{
+  "name": "delivery-api-inspector-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test compare.test.mjs"
+  }
+}
