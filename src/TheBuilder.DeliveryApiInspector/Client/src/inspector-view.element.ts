@@ -305,6 +305,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
     const fieldsChoice = this._fieldsOpen || this._fieldsPick.length ? "pick" : "all";
     return html`
       <section class="panel" aria-label="Response">
+        <div class="head">
         <div class="chrome">
           ${isContent
             ? html`<div class="segmented" role="group" aria-label="Version"><span class="track">
@@ -357,17 +358,24 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
             : nothing}
         </div>
         </div>
+        </div>
+        ${offNote ? html`<p class="note">${offNote}</p>` : nothing}
         ${this._view === "tree"
           ? html`<div class="find">
-              <uui-icon name="icon-search"></uui-icon>
-              <input class="search" type="search" aria-label="Search keys and values" placeholder="Search keys and values, or type a path like properties.image[0].url"
-                .value=${this._query} @input=${(event: InputEvent) => (this._query = (event.target as HTMLInputElement).value)}
-                @keydown=${(event: KeyboardEvent) => { if (event.key === "Enter") { event.preventDefault(); this.shadowRoot?.querySelector("thebuilder-json-tree")?.next(event.shiftKey ? -1 : 1); } }} />
-              <span class="hits">${this.#hitsLabel()}</span>
+              <label class="search-field">
+                <uui-icon name="icon-search"></uui-icon>
+                <input class="search" type="text" role="searchbox" aria-label="Search keys and values" placeholder="Search keys and values, or type a path like properties.image[0].url"
+                  .value=${this._query} @input=${(event: InputEvent) => (this._query = (event.target as HTMLInputElement).value)}
+                  @keydown=${(event: KeyboardEvent) => {
+                    if (event.key === "Enter") { event.preventDefault(); this.shadowRoot?.querySelector("thebuilder-json-tree")?.next(event.shiftKey ? -1 : 1); }
+                    else if (event.key === "Escape" && this._query) { event.preventDefault(); this._query = ""; }
+                  }} />
+                <span class="hits">${this.#hitsLabel()}</span>
+                ${this._query ? html`<button type="button" class="clear" aria-label="Clear search" title="Clear search" @click=${(event: Event) => { event.preventDefault(); this._query = ""; this.shadowRoot?.querySelector<HTMLInputElement>("input.search")?.focus(); }}></button>` : nothing}
+              </label>
               ${this.#segmented("Open levels", this._depth, [[1, "1", "Show the tree one level deep"], [2, "2", "Two levels deep"], [3, "3", "Three levels deep"], [99, "All", "Open every level"]], (value) => { this._depth = value; this.shadowRoot?.querySelector("thebuilder-json-tree")?.reset(); })}
             </div>`
           : nothing}
-        ${offNote ? html`<p class="note">${offNote}</p>` : nothing}
         <div class="body">${this.#body()}</div>
       </section>
     `;
@@ -423,14 +431,18 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         background: var(--inspector-code);
         box-shadow: 0 0 0 1px var(--inspector-line), 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px -12px rgb(0 0 0 / 0.18);
       }
+      /* One header band for the controls and the request, so the panel reads as header plus code. */
+      .head {
+        display: grid;
+        gap: 10px;
+        padding: 10px var(--uui-size-space-3) 12px;
+        background: var(--uui-color-surface);
+        border-bottom: 1px solid var(--inspector-line);
+      }
       .panel-header {
         display: flex;
         align-items: flex-start;
-        gap: var(--uui-size-space-4);
-        min-height: 36px;
-        padding: var(--uui-size-space-3) var(--uui-size-space-3) var(--uui-size-space-3) var(--uui-size-space-5);
-        background: var(--uui-color-surface);
-        border-bottom: 1px solid var(--inspector-line);
+        gap: var(--uui-size-space-3);
       }
       .body {
         position: relative;
@@ -444,9 +456,6 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         flex-wrap: wrap;
         gap: var(--uui-size-space-3);
         align-items: center;
-        padding: var(--uui-size-space-3);
-        background: var(--uui-color-surface);
-        border-bottom: 1px solid var(--inspector-line);
       }
       .spacer {
         flex: 1;
@@ -470,11 +479,10 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         outline: 2px solid var(--uui-color-focus);
       }
       .select .label {
-        font: 12.5px var(--uui-font-monospace, monospace);
         color: var(--uui-color-text-alt);
       }
       .select .value {
-        font-weight: 600;
+        font-weight: 500;
         color: var(--uui-color-text);
       }
       /* The native select covers the whole pill unseen, so a click anywhere opens its options and the
@@ -494,16 +502,71 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         margin-top: -4px;
         pointer-events: none;
       }
+      /* The search sits on the code itself, as a field of its own, not as another band. */
       .find {
         display: flex;
         align-items: center;
-        gap: var(--uui-size-space-3);
-        padding: 4px var(--uui-size-space-3) 4px var(--uui-size-space-5);
-        background: var(--uui-color-surface);
-        border-bottom: 1px solid var(--inspector-line);
+        gap: var(--uui-size-space-4);
+        padding: 10px var(--uui-size-space-3) 2px;
       }
-      .find > uui-icon {
+      .search-field {
+        display: flex;
+        flex: 1;
+        min-width: 160px;
+        align-items: center;
+        gap: 8px;
+        height: 32px;
+        box-sizing: border-box;
+        padding: 0 6px 0 10px;
+        border-radius: 7px;
+        background: var(--uui-color-surface);
+        box-shadow: inset 0 0 0 1px var(--uui-color-border);
+        cursor: text;
+      }
+      .search-field:hover {
+        box-shadow: inset 0 0 0 1px var(--uui-color-border-emphasis, var(--uui-color-border-standalone));
+      }
+      .search-field:focus-within {
+        box-shadow: inset 0 0 0 1px var(--uui-color-focus), 0 0 0 3px color-mix(in srgb, var(--uui-color-focus) 18%, transparent);
+      }
+      .search-field > uui-icon {
+        flex: none;
+        font-size: 14px;
         color: var(--uui-color-text-alt);
+      }
+      /* Our own clear button, drawn as a muted cross, in place of the browser's blue one. */
+      .clear {
+        all: unset;
+        flex: none;
+        position: relative;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        cursor: pointer;
+        color: var(--uui-color-text-alt);
+      }
+      .clear::before,
+      .clear::after {
+        content: "";
+        position: absolute;
+        left: 5px;
+        right: 5px;
+        top: 50%;
+        height: 1.5px;
+        margin-top: -0.75px;
+        border-radius: 1px;
+        background: currentColor;
+        transform: rotate(45deg);
+      }
+      .clear::after {
+        transform: rotate(-45deg);
+      }
+      .clear:hover {
+        color: var(--uui-color-text);
+        background: var(--inspector-track);
+      }
+      .clear:focus-visible {
+        outline: 2px solid var(--uui-color-focus);
       }
       /* A track with the chosen option raised out of it, so the current choice reads at a glance. */
       /* The label sits outside the track as plain text, so only the options look clickable. */
@@ -545,7 +608,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       .segmented button[aria-pressed="true"] {
         background: var(--uui-color-surface);
         color: var(--uui-color-text);
-        font-weight: 600;
+        font-weight: 500;
         box-shadow: 0 1px 2px rgb(0 0 0 / 0.12), 0 0 0 1px var(--inspector-line);
       }
       .segmented button:hover:not([disabled]):not([aria-pressed="true"]) {
@@ -576,20 +639,17 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       .search {
         all: unset;
         flex: 1;
-        min-width: 160px;
-        height: 34px;
-        font-size: 13.5px;
+        min-width: 0;
+        height: 100%;
+        font-size: 13px;
         color: var(--uui-color-text);
-      }
-      .search::-webkit-search-cancel-button {
-        display: none;
       }
       .search::placeholder {
         color: var(--uui-color-text-alt);
         opacity: 0.8;
       }
       .hits {
-        padding: 0 var(--uui-size-space-3);
+        padding: 0 4px;
         font-size: 12px;
         color: var(--uui-color-text-alt);
         white-space: nowrap;
@@ -597,9 +657,9 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       .picker {
         display: grid;
         gap: var(--uui-size-space-2);
-        padding: var(--uui-size-space-3) var(--uui-size-space-5);
-        border-bottom: 1px solid var(--inspector-line);
-        background: var(--uui-color-surface);
+        padding: var(--uui-size-space-3) var(--uui-size-space-4);
+        border-radius: 8px;
+        background: var(--inspector-track);
       }
       .picker-head {
         display: flex;
@@ -636,13 +696,18 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         flex: 1;
         font: 12.5px/1.5 var(--uui-font-monospace, monospace);
       }
-      /* As tall as the copy buttons, so the URL lines up with them whether the headers are open or not. */
+      /* An address bar as tall as the copy buttons, with the same space above and below the URL. */
       .line {
         display: flex;
         gap: var(--uui-size-space-3);
         align-items: center;
-        min-height: 30px;
+        height: 30px;
+        box-sizing: border-box;
         min-width: 0;
+        padding: 0 4px 0 6px;
+        border-radius: 7px;
+        background: var(--inspector-code);
+        box-shadow: inset 0 0 0 1px var(--inspector-line);
       }
       .method {
         padding: 1px 7px;
@@ -669,6 +734,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         color: var(--uui-color-text-alt);
         font-family: var(--uui-font-family);
         font-size: 12px;
+        padding-right: 6px;
       }
       .headers-toggle {
         all: unset;
@@ -677,11 +743,11 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         gap: 7px;
         align-items: center;
         white-space: nowrap;
-        padding: 5px 10px 5px 12px;
-        border-radius: 7px;
-        font: 500 12.5px/1.2 var(--uui-font-family);
+        height: 22px;
+        padding: 0 8px;
+        border-radius: 5px;
+        font: 500 12px/1 var(--uui-font-family);
         color: var(--uui-color-text-alt);
-        box-shadow: inset 0 0 0 1px var(--inspector-line);
       }
       .headers-toggle:hover,
       .headers-toggle[aria-expanded="true"] {
@@ -728,7 +794,9 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         gap: 6px;
         align-items: center;
         white-space: nowrap;
-        padding: 5px 10px;
+        height: 30px;
+        box-sizing: border-box;
+        padding: 0 10px;
         border-radius: 7px;
         font: 500 12.5px var(--uui-font-family);
         color: var(--uui-color-text);
@@ -751,6 +819,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       }
       .note {
         margin: 0;
+        border-bottom: 1px solid var(--inspector-line);
         padding: var(--uui-size-space-3) var(--uui-size-space-5);
         background: var(--uui-color-surface-alt);
         color: var(--uui-color-text-alt);
