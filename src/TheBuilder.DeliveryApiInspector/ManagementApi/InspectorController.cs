@@ -105,6 +105,7 @@ public sealed class InspectorController(
     [HttpGet("content/{id:guid}")]
     [Authorize(Policy = InspectorAccessRequirement.Policy)]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Content(Guid id, bool preview = true, string? culture = null, string? segment = null)
     {
@@ -149,6 +150,7 @@ public sealed class InspectorController(
     [HttpGet("media/{id:guid}")]
     [Authorize(Policy = InspectorAccessRequirement.Policy)]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Media(Guid id)
     {
@@ -159,10 +161,22 @@ public sealed class InspectorController(
             return NotInstalled();
         }
 
-        if (!InspectorAccessHandler.IsAllowedForMedia(securityAccessor.BackOfficeSecurity?.CurrentUser, options.CurrentValue)
-            || !await MayBrowseMedia(id))
+        DeliveryApiInspectorOptions inspector = options.CurrentValue;
+        if (!inspector.Media)
+        {
+            return NotFoundProblem("The inspector is turned off for media.");
+        }
+
+        if (!await MayBrowseMedia(id))
         {
             return NotFoundProblem("The media item does not exist, or you cannot browse it.");
+        }
+
+        if (!InspectorAccessHandler.IsAllowedForMedia(securityAccessor.BackOfficeSecurity?.CurrentUser, inspector))
+        {
+            return Problem(
+                statusCode: StatusCodes.Status403Forbidden,
+                title: "Your user groups do not have the View Delivery API output permission. Media follows the group's default permissions.");
         }
 
         return await Build(false, null, null, () =>

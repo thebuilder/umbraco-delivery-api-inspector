@@ -9,6 +9,7 @@ seo:
 
 - The user needs a group with the **View Delivery API output** permission, for this document if the group sets permissions on part of the tree, or a group named in `DeliveryApiInspector:UserGroups`. See [Access](/access).
 - A new document has no tab until it has been saved once.
+- Administrators get the permission when the package's migration runs on startup. If `Umbraco:CMS:Unattended:PackageMigrationsUnattended` is `false`, run it from **Packages, Installed** in the backoffice, or tick the permission on the group yourself.
 - `DeliveryApiInspector:Enabled` may be off for this environment.
 - On media items, `DeliveryApiInspector:Media` may be off.
 - After changing a setting in appsettings, reload the backoffice. It reads the settings when it loads.

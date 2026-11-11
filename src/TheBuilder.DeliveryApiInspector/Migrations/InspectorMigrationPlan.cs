@@ -1,5 +1,6 @@
 using TheBuilder.DeliveryApiInspector.ManagementApi;
 using Umbraco.Cms.Core.Models.Membership;
+using Umbraco.Cms.Core.Models.Membership.Permissions;
 using Umbraco.Cms.Core.Packaging;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Infrastructure.Migrations;
@@ -20,19 +21,37 @@ internal sealed class InspectorMigrationPlan : PackageMigrationPlan
 }
 
 /// <summary>
-///     Gives the Administrators group the inspector's permission, so administrators keep the tab they
-///     had before access moved to user groups. Runs once: a group that drops it later stays without.
+///     Gives the Administrators group the inspector's permission, so administrators see the tab once the
+///     package is installed. Per-document entries replace the group's defaults on their part of the tree,
+///     so every document with entries gets the permission too. Runs once: a group that drops it later
+///     stays without.
 /// </summary>
 internal sealed class GrantAdministrators(IMigrationContext context, IUserGroupService userGroups) : AsyncMigrationBase(context)
 {
     protected override async Task MigrateAsync()
     {
         IUserGroup? administrators = await userGroups.GetAsync(UmbracoConstants.Security.AdminGroupKey);
-        if (administrators is null || !administrators.Permissions.Add(InspectorAccessHandler.Permission))
+        if (administrators is null)
         {
             return;
         }
 
-        await userGroups.UpdateAsync(administrators, UmbracoConstants.Security.SuperUserKey);
+        var changed = administrators.Permissions.Add(InspectorAccessHandler.Permission);
+
+        Guid[] documents = administrators.GranularPermissions
+            .OfType<DocumentGranularPermission>()
+            .Select(granular => granular.Key)
+            .Distinct()
+            .ToArray();
+        foreach (Guid document in documents)
+        {
+            changed |= administrators.GranularPermissions.Add(
+                new DocumentGranularPermission { Key = document, Permission = InspectorAccessHandler.Permission });
+        }
+
+        if (changed)
+        {
+            await userGroups.UpdateAsync(administrators, UmbracoConstants.Security.SuperUserKey);
+        }
     }
 }

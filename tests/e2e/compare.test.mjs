@@ -178,8 +178,21 @@ describe("the View Delivery API output permission", () => {
     assert.ok(original.fallbackPermissions.includes(permission));
   });
 
+  it("is given on the documents where Administrators already had permissions of its own", async () => {
+    // The example site sets Administrators' permissions on the About page, then installs the package again.
+    const about = "e0000000-0000-0000-0000-000000000006";
+    const entry = original.permissions.find((granular) => granular.document?.id === about);
+    assert.ok(entry, "The example site has no permissions for Administrators on the About page.");
+    assert.ok(entry.verbs.includes(permission), `The About page's verbs are ${entry.verbs.join(", ")}.`);
+    assert.deepEqual((await inspector(`/access/content/${about}`)).body, { allowed: true });
+  });
+
   it("closes the tab, and refuses every endpoint, for a user whose groups do not have it", async () => {
-    await saveAdministrators({ ...original, fallbackPermissions: original.fallbackPermissions.filter((verb) => verb !== permission) });
+    await saveAdministrators({
+      ...original,
+      fallbackPermissions: original.fallbackPermissions.filter((verb) => verb !== permission),
+      permissions: [],
+    });
     const { body: config } = await inspector("/config");
     assert.equal(config.allowed, false);
     assert.equal(config.media, false);
@@ -199,5 +212,8 @@ describe("the View Delivery API output permission", () => {
     assert.equal((await inspector(`/content/${forest}`)).status, 403);
     // Media has no permissions per item, so a permission on a document does not open the media tab.
     assert.equal((await inspector("/config")).body.media, false);
+    const media = await inspector("/media/e1000000-0000-0000-0000-000000000001");
+    assert.equal(media.status, 403);
+    assert.match(media.body.title, /View Delivery API output permission/);
   });
 });

@@ -17,6 +17,8 @@ export interface AccessConditionConfig extends UmbConditionConfigBase<typeof ACC
  * way Umbraco does: the closest permission set on the document's path, or else the group's default.
  */
 export class AccessCondition extends UmbConditionBase<AccessConditionConfig> implements UmbExtensionCondition {
+  #unique?: string;
+
   constructor(host: UmbControllerHost, args: UmbConditionControllerArguments<AccessConditionConfig>) {
     super(host, args);
     api.config().then(
@@ -31,13 +33,19 @@ export class AccessCondition extends UmbConditionBase<AccessConditionConfig> imp
         }
         this.consumeContext(UMB_ENTITY_CONTEXT, (context) => {
           this.observe(context?.unique, (unique) => {
+            // A quick switch between documents can answer out of order, so only the latest document counts.
+            this.#unique = unique ?? undefined;
             if (!unique) {
               this.permitted = false;
               return;
             }
             api.contentAccess(unique).then(
-              (allowed) => (this.permitted = allowed),
-              () => (this.permitted = false),
+              (allowed) => {
+                if (this.#unique === unique) this.permitted = allowed;
+              },
+              () => {
+                if (this.#unique === unique) this.permitted = false;
+              },
             );
           }, "_unique");
         });

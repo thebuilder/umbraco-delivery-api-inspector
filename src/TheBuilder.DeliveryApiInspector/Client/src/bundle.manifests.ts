@@ -20,7 +20,7 @@ export const manifests = [
     meta: {
       verbs: [VIEW_PERMISSION],
       label: "View Delivery API output",
-      description: "Allow access to the API tab, with what the Delivery API returns for a Document",
+      description: "Allow access to the API tab, which shows what the Delivery API returns for a document",
     },
   },
   {
