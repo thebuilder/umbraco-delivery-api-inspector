@@ -332,15 +332,15 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
     const choose = (expand: Expand) => { this._expand = expand; this._expandPick = []; this.#closeMenu("expand-menu"); };
     return html`${this.#trigger("Expand", "expand-menu", this.#summary(this._expand === "all" ? "All" : "None", picked))}
       ${this.#menu("expand-menu", "start", html`
-        ${this.#item("None", this._expand === "none", "choice", () => choose("none"))}
-        ${this.#item("All", this._expand === "all", "choice", () => choose("all"))}
+        ${this.#item("None", this._expand === "none", "check", () => choose("none"))}
+        ${this.#item("All", this._expand === "all", "check", () => choose("all"))}
         ${this.#aliasItems(picked, (aliases) => { this._expandPick = aliases; this._expand = aliases.length ? "pick" : "none"; })}`)}`;
   }
 
   #fieldsMenu() {
     return html`${this.#trigger("Fields", "fields-menu", this.#summary("All", this._fieldsPick))}
       ${this.#menu("fields-menu", "start", html`
-        ${this.#item("All", !this._fieldsPick.length, "choice", () => { this._fieldsPick = []; this.#closeMenu("fields-menu"); })}
+        ${this.#item("All", !this._fieldsPick.length, "check", () => { this._fieldsPick = []; this.#closeMenu("fields-menu"); })}
         ${this.#aliasItems(this._fieldsPick, (aliases) => (this._fieldsPick = aliases))}`)}`;
   }
 

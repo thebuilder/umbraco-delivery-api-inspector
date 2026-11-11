@@ -66,7 +66,7 @@ await view.getByRole("button", { name: "2", exact: true }).click();
 await shot("document");
 
 await view.locator('[popovertarget="expand-menu"]').click();
-await view.getByRole("menuitemradio", { name: "All" }).click();
+await view.getByRole("menuitemcheckbox", { name: "All" }).click();
 await view.locator("input.search").fill("url");
 await shot("search");
 await view.locator("input.search").fill("");
