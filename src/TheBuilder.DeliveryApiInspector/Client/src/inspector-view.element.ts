@@ -54,7 +54,6 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
   @state() private _expand: Expand = "none";
   @state() private _expandPick: string[] = [];
   @state() private _fieldsPick: string[] = [];
-  @state() private _fieldsOpen = false;
   @state() private _view: "tree" | "raw" = "tree";
   @state() private _changeStyle: "diff" | "inline" = "diff";
   @state() private _depth = 3;
@@ -157,6 +156,10 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
     }
     if (inputs.some((name) => changed.has(name)) || changed.has("_response")) {
       this.#fitUrl();
+    }
+    // A pick changes the button's text and so where it sits, so an open menu follows it.
+    for (const menu of this.shadowRoot?.querySelectorAll<HTMLElement>(".menu:popover-open") ?? []) {
+      this.#place(menu, menu.id, menu.dataset.align === "end" ? "end" : "start", false);
     }
   }
 
@@ -261,31 +264,96 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
     </div>`;
   }
 
-  /** A compact dropdown for a request parameter, named as the API names it. */
-  #select<T extends string>(label: string, value: T, options: [T, string][], set: (value: T) => void) {
-    return html`<label class="select">
-      <span class="label">${label}</span>
-      <span class="box">
-        <span class="value" aria-hidden="true">${options.find(([option]) => option === value)?.[1]}</span>
-        <svg class="chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
-        <select aria-label=${label} @change=${(event: Event) => set((event.target as HTMLSelectElement).value as T)}>
-          ${options.map(([option, text]) => html`<option value=${option} ?selected=${option === value}>${text}</option>`)}
-        </select>
-      </span>
-    </label>`;
+  /**
+   * A menu that opens as a popover under the button that names it, so it sits above the panel and
+   * closes on a click outside or Esc. The arrow keys move between its items.
+   */
+  #menu(id: string, align: "start" | "end", items: unknown) {
+    return html`<div id=${id} class="menu" popover role="menu" data-align=${align}
+      @toggle=${(event: ToggleEvent) => { if (event.newState === "open") this.#place(event.target as HTMLElement, id, align); }}
+      @keydown=${(event: KeyboardEvent) => this.#menuKeys(event)}>${items}</div>`;
   }
 
-  #picker(title: string, chosen: string[], set: (aliases: string[]) => void, hint: string) {
-    return html`<div class="picker">
-      <div class="picker-head"><strong>${title}</strong><span>${hint}</span>
-        ${chosen.length ? html`<button type="button" class="link" @click=${() => set([])}>Clear</button>` : nothing}</div>
-      <div class="aliases">
-        ${this._aliases.length
-          ? this._aliases.map((alias) => html`<label><input type="checkbox" .checked=${chosen.includes(alias)}
-              @change=${(event: Event) => set((event.target as HTMLInputElement).checked ? [...chosen, alias] : chosen.filter((a) => a !== alias))} /> ${alias}</label>`)
-          : html`<span class="muted">This item has no properties.</span>`}
-      </div>
-    </div>`;
+  #place(menu: HTMLElement, id: string, align: "start" | "end", focus = true): void {
+    const trigger = this.shadowRoot?.querySelector<HTMLElement>(`[popovertarget="${id}"]`);
+    if (!trigger) return;
+    const box = trigger.getBoundingClientRect();
+    const width = menu.offsetWidth;
+    const left = align === "end" ? box.right - width : box.left;
+    menu.style.left = `${Math.max(8, Math.min(left, window.innerWidth - width - 8))}px`;
+    menu.style.top = `${box.bottom + 4}px`;
+    menu.style.maxHeight = `${Math.max(160, window.innerHeight - box.bottom - 16)}px`;
+    if (focus) menu.querySelector<HTMLElement>(".item")?.focus();
+  }
+
+  #menuKeys(event: KeyboardEvent): void {
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+    event.preventDefault();
+    const items = [...(event.currentTarget as HTMLElement).querySelectorAll<HTMLElement>(".item")];
+    const index = items.indexOf(this.shadowRoot?.activeElement as HTMLElement);
+    items[(index + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length]?.focus();
+  }
+
+  #closeMenu(id: string): void {
+    this.shadowRoot?.getElementById(id)?.hidePopover();
+  }
+
+  /** One choice in a menu: a tick for a single choice, a checkbox for one of several. */
+  #item(text: unknown, checked: boolean, kind: "choice" | "check", pick: () => void) {
+    return html`<button type="button" class="item" role=${kind === "check" ? "menuitemcheckbox" : "menuitemradio"} aria-checked=${String(checked)} data-kind=${kind} @click=${pick}>
+      <span class="mark" aria-hidden="true">${checked ? html`<svg viewBox="0 0 12 10"><path d="M1.5 5.2l3 3L10.5 1.8" /></svg>` : nothing}</span>${text}
+    </button>`;
+  }
+
+  /** The button that opens a parameter's menu, named as the API names the parameter. */
+  #trigger(label: string, id: string, summary: string) {
+    return html`<span class="select">
+      <span class="label" id=${`${id}-label`}>${label}</span>
+      <button type="button" class="box" popovertarget=${id} aria-haspopup="menu" aria-labelledby=${`${id}-label ${id}-value`}>
+        <span class="value" id=${`${id}-value`}>${summary}</span>
+        <svg class="chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
+      </button>
+    </span>`;
+  }
+
+  #summary(choice: string, picked: string[]): string {
+    if (!picked.length) return choice;
+    return picked.length === 1 ? picked[0] : `${picked.length} properties`;
+  }
+
+  #aliasItems(picked: string[], set: (aliases: string[]) => void) {
+    if (!this._aliases.length) return html`<p class="menu-hint">This item has no properties.</p>`;
+    return html`<hr />${this._aliases.map((alias) => this.#item(html`<span class="alias">${alias}</span>`, picked.includes(alias), "check",
+      () => set(picked.includes(alias) ? picked.filter((a) => a !== alias) : [...picked, alias])))}`;
+  }
+
+  #expandMenu() {
+    const picked = this._expand === "pick" ? this._expandPick : [];
+    const choose = (expand: Expand) => { this._expand = expand; this._expandPick = []; this.#closeMenu("expand-menu"); };
+    return html`${this.#trigger("Expand", "expand-menu", this.#summary(this._expand === "all" ? "All" : "None", picked))}
+      ${this.#menu("expand-menu", "start", html`
+        ${this.#item("None", this._expand === "none", "choice", () => choose("none"))}
+        ${this.#item("All", this._expand === "all", "choice", () => choose("all"))}
+        ${this.#aliasItems(picked, (aliases) => { this._expandPick = aliases; this._expand = aliases.length ? "pick" : "none"; })}`)}`;
+  }
+
+  #fieldsMenu() {
+    return html`${this.#trigger("Fields", "fields-menu", this.#summary("All", this._fieldsPick))}
+      ${this.#menu("fields-menu", "start", html`
+        ${this.#item("All", !this._fieldsPick.length, "choice", () => { this._fieldsPick = []; this.#closeMenu("fields-menu"); })}
+        ${this.#aliasItems(this._fieldsPick, (aliases) => (this._fieldsPick = aliases))}`)}`;
+  }
+
+  #copyMenu(request: DeliveryRequest) {
+    const copy = (text: string, message: string) => { this.#closeMenu("copy-menu"); void this.#copy(text, message); };
+    const origin = backofficeOrigin();
+    return html`<button type="button" class="copy-button" popovertarget="copy-menu" aria-haspopup="menu">
+        <uui-icon name="icon-documents"></uui-icon>Copy<svg class="chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
+      </button>
+      ${this.#menu("copy-menu", "end", html`
+        <button type="button" class="item" role="menuitem" @click=${() => copy(origin + fullUrl(request), "Copied the URL.")}>URL</button>
+        <button type="button" class="item" role="menuitem" @click=${() => copy(toCurl(origin, request), "Copied the curl command.")}>curl</button>
+        <button type="button" class="item" role="menuitem" @click=${() => copy(toFetch(origin, request), "Copied the fetch call.")}>fetch</button>`)}`;
   }
 
   render() {
@@ -304,7 +372,6 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         ? "The Media Delivery API is turned off (DeliveryApi:Media:Enabled). This is what it would return."
         : undefined;
 
-    const fieldsChoice = this._fieldsOpen || this._fieldsPick.length ? "pick" : "all";
     return html`
       <section class="panel" aria-label="Response">
         <div class="head">
@@ -325,14 +392,10 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
             ? this.#segmented("Changes as", this._changeStyle, [["diff", "Diff", "A red line for published and a green line for the draft"], ["inline", "Inline", "Published struck through, next to the draft"]], (value) => (this._changeStyle = value))
             : nothing}
           <span class="spacer"></span>
-          ${this.#select<Expand>("Expand", this._expand, [["none", "None"], ["all", "All"], ["pick", "Pick…"]], (value) => (this._expand = value))}
-          ${this.#select<"all" | "pick">("Fields", fieldsChoice, [["all", "All"], ["pick", "Pick…"]], (value) => {
-            if (value === "all") { this._fieldsPick = []; this._fieldsOpen = false; } else this._fieldsOpen = true;
-          })}
+          ${this.#expandMenu()}
+          ${this.#fieldsMenu()}
           ${this.#segmented("View", this._view, [["tree", "Tree"], ["raw", "Raw", "Read-only JSON in the code editor"]], (value) => (this._view = value))}
         </div>
-        ${this._expand === "pick" ? this.#picker("Expand", this._expandPick, (aliases) => (this._expandPick = aliases), "Pickers and blocks whose items come back with their properties.") : nothing}
-        ${fieldsChoice === "pick" ? this.#picker("Fields", this._fieldsPick, (aliases) => (this._fieldsPick = aliases), "Only these properties come back. None chosen means all.") : nothing}
         <div class="panel-header">
         ${request
           ? html`<div class="request">
@@ -354,10 +417,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
             </div>`
           : nothing}
         <div class="copy">
-          ${request
-            ? html`<button type="button" class="copy-button" @click=${() => this.#copy(toCurl(backofficeOrigin(), request), "Copied the curl command.")}><uui-icon name="icon-documents"></uui-icon>Copy as curl</button>
-                <button type="button" class="copy-button" @click=${() => this.#copy(toFetch(backofficeOrigin(), request), "Copied the fetch call.")}><uui-icon name="icon-documents"></uui-icon>Copy as fetch</button>`
-            : nothing}
+          ${request ? this.#copyMenu(request) : nothing}
         </div>
         </div>
         </div>
@@ -402,8 +462,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
     }
     return html`<thebuilder-json-tree class=${this._loading ? "loading" : ""} theme=${this._theme} .data=${data} .changes=${this._mode === "changes" ? this._changes : undefined}
       .depth=${this._depth} .query=${this._query} changeStyle=${this._changeStyle}
-      @hits=${(event: CustomEvent<TreeHits>) => (this._hits = event.detail)}
-      @copied=${(event: CustomEvent<string>) => this.#notification?.peek("positive", { data: { message: event.detail } })}></thebuilder-json-tree>`;
+      @hits=${(event: CustomEvent<TreeHits>) => (this._hits = event.detail)}></thebuilder-json-tree>`;
   }
 
   static styles = [
@@ -478,7 +537,8 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         color: var(--uui-color-text-alt);
       }
       .select .box {
-        position: relative;
+        all: unset;
+        cursor: pointer;
         display: inline-flex;
         align-items: center;
         gap: 8px;
@@ -492,16 +552,18 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         background: var(--uui-color-surface);
         box-shadow: inset 0 0 0 1px var(--uui-color-border);
       }
-      .select:hover .box {
+      .select .box:hover,
+      .select .box:has(+ .menu:popover-open) {
         background: var(--inspector-track);
       }
-      .select:focus-within .box {
+      .select .box:focus-visible {
         outline: 2px solid var(--uui-color-focus);
       }
       .select .value {
         color: var(--uui-color-text);
       }
-      .select .chevron {
+      .select .chevron,
+      .copy-button .chevron {
         width: 10px;
         height: 6px;
         margin-top: -2px;
@@ -511,15 +573,82 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         stroke-linecap: round;
         stroke-linejoin: round;
       }
-      /* The native select covers the box unseen, so a click opens its options and the keyboard and
-         screen readers get a real select. */
-      .select select {
-        position: absolute;
-        inset: 0;
+      /* The menus open in the top layer under their button; #place sets where. */
+      .menu {
+        position: fixed;
+        inset: auto;
+        margin: 0;
+        min-width: 160px;
+        box-sizing: border-box;
+        overflow: auto;
+        padding: 4px;
+        border: 0;
+        border-radius: 8px;
+        background: var(--uui-color-surface);
+        color: var(--uui-color-text);
+        font: 13px var(--uui-font-family);
+        box-shadow: 0 0 0 1px var(--inspector-line), 0 10px 28px -8px rgb(0 0 0 / 0.28);
+      }
+      .menu .item {
+        all: unset;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        gap: 8px;
         width: 100%;
-        opacity: 0;
+        height: 30px;
+        padding: 2px 12px 0 8px;
+        border-radius: 5px;
+        white-space: nowrap;
         cursor: pointer;
-        font-size: 13px;
+      }
+      .menu .item[role="menuitem"] {
+        padding-left: 12px;
+      }
+      .menu .item:hover,
+      .menu .item:focus-visible {
+        background: var(--inspector-track);
+      }
+      .menu .mark {
+        flex: none;
+        display: grid;
+        place-items: center;
+        width: 14px;
+        height: 14px;
+        margin-top: -2px;
+        box-sizing: border-box;
+      }
+      .menu .mark svg {
+        width: 11px;
+        height: 9px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .menu .item[data-kind="check"] .mark {
+        border-radius: 3px;
+        box-shadow: inset 0 0 0 1px var(--uui-color-border-emphasis, var(--uui-color-border-standalone));
+      }
+      .menu .item[data-kind="check"][aria-checked="true"] .mark {
+        background: var(--uui-color-selected);
+        box-shadow: none;
+        color: var(--uui-color-selected-contrast, #fff);
+      }
+      .menu .alias {
+        font: 12.5px var(--uui-font-monospace, monospace);
+      }
+      .menu hr {
+        margin: 4px 0;
+        border: 0;
+        border-top: 1px solid var(--inspector-line);
+      }
+      .menu-hint {
+        margin: 4px 0 0;
+        padding: 4px 8px;
+        font-size: 12px;
+        color: var(--uui-color-text-alt);
       }
       /* The search sits on the code itself, as a field of its own, not as another band. */
       .find {
@@ -673,41 +802,6 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         font-size: 12px;
         color: var(--uui-color-text-alt);
         white-space: nowrap;
-      }
-      .picker {
-        display: grid;
-        gap: var(--uui-size-space-2);
-        padding: var(--uui-size-space-3) var(--uui-size-space-4);
-        border-radius: 8px;
-        background: var(--inspector-track);
-      }
-      .picker-head {
-        display: flex;
-        gap: var(--uui-size-space-3);
-        align-items: baseline;
-        font-size: 13px;
-      }
-      .picker-head span {
-        color: var(--uui-color-text-alt);
-      }
-      .aliases {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--uui-size-space-2) var(--uui-size-space-5);
-        font: 12.5px var(--uui-font-monospace, monospace);
-      }
-      .aliases label {
-        display: inline-flex;
-        gap: 6px;
-        align-items: center;
-        cursor: pointer;
-      }
-      button.link {
-        all: unset;
-        cursor: pointer;
-        margin-left: auto;
-        color: var(--uui-color-interactive);
-        font-size: 12px;
       }
       .request {
         display: grid;

@@ -3,7 +3,6 @@ import { api, backofficeOrigin, editUrl, thumbnail } from "./api.js";
 import {
   changedAncestors,
   children,
-  formatPath,
   getAt,
   guidKind,
   isContainer,
@@ -28,9 +27,8 @@ export interface TreeHits {
 }
 
 /**
- * A Delivery API response as a tree: open to a depth, filtered by a search, with copy actions on
- * every row, and with draft against published marked when given changes. Colours come from the
- * backoffice's UUI tokens, so it follows the light, dark and high contrast themes.
+ * A Delivery API response as a tree: open to a depth, filtered by a search, and with draft against
+ * published marked when given changes. Colours come from the backoffice's UUI tokens, so it follows the light, dark and high contrast themes.
  */
 @customElement("thebuilder-json-tree")
 export class JsonTreeElement extends LitElement {
@@ -169,15 +167,6 @@ export class JsonTreeElement extends LitElement {
     this._overrides = overrides;
   }
 
-  async #copy(text: string, message: string): Promise<void> {
-    try {
-      await navigator.clipboard.writeText(text);
-      this.dispatchEvent(new CustomEvent("copied", { detail: message }));
-    } catch {
-      this.dispatchEvent(new CustomEvent("copied", { detail: "The browser blocked copying." }));
-    }
-  }
-
   #onKeydown(event: KeyboardEvent): void {
     const rows = [...this.renderRoot.querySelectorAll<HTMLElement>(".row[data-path]")];
     const index = rows.indexOf(event.composedPath()[0] as HTMLElement);
@@ -217,10 +206,6 @@ export class JsonTreeElement extends LitElement {
       const asLines = change?.kind === "changed" && this.changeStyle === "diff" && !isContainer(value);
       const hit = (searching && matches(key, value, this.query.trim())) || (this.#jump && keyString === pathKey(this.#jump));
       const classes = ["row", asLines ? "added" : change?.kind ?? "", hit ? "hit" : "", keyString === current ? "current" : ""].join(" ");
-      const actions = html`<span class="actions">
-        <button type="button" @click=${() => this.#copy(formatPath(path), `Copied ${formatPath(path)}`)}>Copy path</button>
-        <button type="button" @click=${() => this.#copy(isContainer(value) ? JSON.stringify(value, null, 2) : String(value), "Copied the value")}>Copy value</button>
-      </span>`;
       const keyLabel = typeof key === "number"
         ? html`<span class="index">${key}</span><span class="punct colon">:</span>`
         : html`<span class="key">${this.#highlight(JSON.stringify(key))}</span><span class="punct colon">:</span>`;
@@ -235,7 +220,7 @@ export class JsonTreeElement extends LitElement {
         rows.push(html`<div class=${classes} data-path=${keyString} role="treeitem" aria-level=${level} tabindex="-1" style="--level:${level}"
           @mouseenter=${isImageUrl(parent, key, value) ? (event: MouseEvent) => this.#showThumb(event, keyString, parent, value) : nothing}
           @mouseleave=${isImageUrl(parent, key, value) ? () => (this._thumb = undefined) : nothing}>
-          <span class="gutter"></span>${keyLabel}${before}${this.#value(key, value, path, parent, parentKey)}${actions}
+          <span class="gutter"></span>${keyLabel}${before}${this.#value(key, value, path, parent, parentKey)}
         </div>`);
         return;
       }
@@ -252,7 +237,9 @@ export class JsonTreeElement extends LitElement {
           ? html`<button type="button" class="gutter chevron" tabindex="-1" aria-label=${open ? "Close" : "Open"} title="Alt-click opens or closes everything inside"
               @click=${(event: MouseEvent) => this.#toggle(event, path, value, open)}>${open ? "▾" : "▸"}</button>`
           : html`<span class="gutter"></span>`}
-        ${keyLabel}${before}<span class="punct">${start}${open ? "" : entries.length ? "…" : ""}${open ? "" : end}</span>${count}${tag}${actions}
+        ${entries.length
+          ? html`<span class="toggle" @click=${(event: MouseEvent) => this.#toggle(event, path, value, open)}>${keyLabel}</span>`
+          : keyLabel}${before}<span class=${entries.length ? "punct toggle" : "punct"} @click=${entries.length ? (event: MouseEvent) => this.#toggle(event, path, value, open) : nothing}>${start}${open ? "" : entries.length ? "…" : ""}${open ? "" : end}</span>${count}${tag}
       </div>`);
       if (!open) return;
       for (const [childKey, child] of entries) walk(childKey, child, [...path, childKey], level + 1, value, key);
@@ -398,28 +385,10 @@ export class JsonTreeElement extends LitElement {
       background: color-mix(in srgb, var(--json-key) 10%, transparent);
       color: var(--json-key);
     }
-    .actions {
-      display: none;
-      gap: 4px;
-      margin-left: auto;
-      padding-left: var(--uui-size-space-5, 18px);
-    }
-    .row:hover .actions,
-    .row:focus-within .actions {
-      display: inline-flex;
-    }
-    .actions button {
-      all: unset;
+    /* A container's key and its brackets fold it too, not only the chevron. */
+    .toggle {
       cursor: pointer;
-      padding: 0 6px;
-      font: 500 11px/1.6 var(--uui-font-family);
-      color: var(--uui-color-text-alt);
-      border: 1px solid var(--uui-color-border);
-      border-radius: 3px;
-      background: var(--uui-color-surface);
     }
-    .actions button:hover { color: var(--uui-color-text); border-color: var(--uui-color-border-emphasis); }
-    .actions button:focus-visible { outline: 2px solid var(--uui-color-focus); }
     /* With changes, the tree gets a column of its own at the left for − and +, outside the
        indentation, as in a code review. A changed row's tint runs into that column, and the indent
        guides carry on through it a shade darker so they still read on the tint. */

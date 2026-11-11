@@ -11,7 +11,7 @@ The API tab shows the response as a tree. Objects and arrays collapse to one lin
 
 The **Open levels** control opens the tree to a depth: 1 shows the top-level keys, 2 and 3 open the next levels, and All opens everything. The choice is remembered for the next item you open.
 
-To open or close a single branch with everything under it, Alt-click its row.
+Click a branch's arrow, key or brackets to open or close it. Alt-click opens or closes it with everything under it.
 
 ## Search
 
@@ -19,16 +19,16 @@ Type in the search field to filter the tree to the keys and values that match. M
 
 ![Searching for url filters the tree to the rows that match and shows 1 of 2.](../screenshots/search.png)
 
-Type a path instead, such as `properties.heroImage[0].url`, and the tree jumps to that value. Every row has a **Copy path** action that copies its path in the same form, and a **Copy value** action.
+Type a path instead, such as `properties.heroImage[0].url`, and the tree jumps to that value.
 
 ## expand and fields
 
 The Delivery API returns pickers and blocks shallow unless the request asks for more. The **Expand** and **Fields** dropdowns at the top of the panel set those request parameters for you:
 
-- **expand**: None returns linked items as references, All expands every property one level, and Pick… lets you choose which properties to expand.
-- **fields**: All returns every property, and Pick… returns only the properties you choose.
+- **Expand**: None returns linked items as references, All expands every property one level, or tick the properties to expand.
+- **Fields**: All returns every property, or tick the properties you want back.
 
-The pickers list the properties of the response you are looking at, so you never type an alias. A request that the API refuses shows the API's own error.
+Each dropdown lists the properties of the response you are looking at, so you never type an alias. Ticking a property clears All, and choosing All clears the ticks. A request that the API refuses shows the API's own error.
 
 ## Tree and Raw
 
