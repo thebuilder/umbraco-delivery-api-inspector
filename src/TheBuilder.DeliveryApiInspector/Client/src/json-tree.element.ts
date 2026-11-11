@@ -189,6 +189,12 @@ export class JsonTreeElement extends LitElement {
     }
   }
 
+  /** Lights up one pair of brackets, as an editor does at the cursor, without rendering the tree again. */
+  #pair(id: number | undefined): void {
+    const style = this.renderRoot.querySelector<HTMLStyleElement>("style.pair");
+    if (style) style.textContent = id === undefined ? "" : `.bracket[data-pair="${id}"] { background: var(--json-pair); box-shadow: 0 0 0 1px var(--json-pair-border); border-radius: 2px; }`;
+  }
+
   render() {
     if (!isContainer(this.data)) {
       return html`<div class="tree" role="tree">${this.#value(null, this.data, [], undefined, undefined)}</div>`;
@@ -197,10 +203,21 @@ export class JsonTreeElement extends LitElement {
     const current = this.#hits.length ? pathKey(this.#hits[this._hit]) : undefined;
     const searching = !!this.query.trim() && !this.#jump;
     const brackets = (value: Json[] | object): [string, string] => (Array.isArray(value) ? ["[", "]"] : ["{", "}"]);
+    // Line numbers are the lines of the formatted JSON, so a closed or filtered branch skips its lines
+    // as a fold in an editor does. Lines only in published have no number.
+    let line = 1;
+    let pairs = 0;
+    const lead = (number: number | undefined, fold: unknown = nothing) =>
+      html`<span class="ln" aria-hidden="true">${number ?? ""}</span><span class="sign" aria-hidden="true"></span><span class="fold">${fold}</span>`;
+    const bracket = (text: string, depth: number, pair: number) => html`<span class="bracket b${depth % 3}" data-pair=${pair}>${text}</span>`;
+    const comma = (last: boolean) => (last ? nothing : html`<span class="punct">,</span>`);
 
-    const walk = (key: Segment, value: Json, path: Segment[], level: number, parent: Json, parentKey: Segment | undefined) => {
+    const walk = (key: Segment, value: Json, path: Segment[], level: number, parent: Json, parentKey: Segment | undefined, last: boolean) => {
       const keyString = pathKey(path);
-      if (searching && !this.#keep.has(keyString)) return;
+      if (searching && !this.#keep.has(keyString)) {
+        line += lineCount(value);
+        return;
+      }
       const change = this.changes?.get(keyString);
       // In diff style a changed value is a published line taken away and a draft line added.
       const asLines = change?.kind === "changed" && this.changeStyle === "diff" && !isContainer(value);
@@ -214,13 +231,13 @@ export class JsonTreeElement extends LitElement {
       if (!isContainer(value)) {
         if (asLines) {
           rows.push(html`<div class="row removed" role="treeitem" aria-level=${level} aria-label="Published" style="--level:${level}">
-            <span class="gutter"></span>${keyLabel}<span class="before">${preview(change.before)}</span>
+            ${lead(undefined)}<span class="code">${keyLabel}<span class="before">${preview(change.before)}</span>${comma(last)}</span>
           </div>`);
         }
         rows.push(html`<div class=${classes} data-path=${keyString} role="treeitem" aria-level=${level} tabindex="-1" style="--level:${level}"
           @mouseenter=${isImageUrl(parent, key, value) ? (event: MouseEvent) => this.#showThumb(event, keyString, parent, value) : nothing}
           @mouseleave=${isImageUrl(parent, key, value) ? () => (this._thumb = undefined) : nothing}>
-          <span class="gutter"></span>${keyLabel}${before}${this.#value(key, value, path, parent, parentKey)}
+          ${lead(line++)}<span class="code">${keyLabel}${before}${this.#value(key, value, path, parent, parentKey)}${comma(last)}</span>
         </div>`);
         return;
       }
@@ -228,45 +245,56 @@ export class JsonTreeElement extends LitElement {
       const entries = children(value);
       const open = entries.length > 0 && this.#isOpen(path, level);
       const [start, end] = brackets(value);
+      const pair = ++pairs;
       const tag = !Array.isArray(value) && typeof (value.contentType ?? value.mediaType) === "string"
         ? html`<span class="tag">${value.contentType ?? value.mediaType}</span>`
         : nothing;
-      const count = Array.isArray(value) ? html`<span class="meta">${entries.length} ${entries.length === 1 ? "item" : "items"}</span>` : nothing;
-      rows.push(html`<div class=${classes} data-path=${keyString} role="treeitem" aria-level=${level} aria-expanded=${entries.length ? String(open) : nothing} tabindex="-1" style="--level:${level}">
-        ${entries.length
-          ? html`<button type="button" class="gutter chevron" tabindex="-1" aria-label=${open ? "Close" : "Open"} title="Alt-click opens or closes everything inside"
-              @click=${(event: MouseEvent) => this.#toggle(event, path, value, open)}>${open ? "▾" : "▸"}</button>`
-          : html`<span class="gutter"></span>`}
-        ${entries.length
-          ? html`<span class="toggle" @click=${(event: MouseEvent) => this.#toggle(event, path, value, open)}>${keyLabel}</span>`
-          : keyLabel}${before}<span class=${entries.length ? "punct toggle" : "punct"} @click=${entries.length ? (event: MouseEvent) => this.#toggle(event, path, value, open) : nothing}>${start}${open ? "" : entries.length ? "…" : ""}${open ? "" : end}</span>${count}${tag}
+      const count = Array.isArray(value) && entries.length ? html`<span class="meta">${entries.length} ${entries.length === 1 ? "item" : "items"}</span>` : nothing;
+      const toggle = (event: MouseEvent) => this.#toggle(event, path, value, open);
+      const fold = entries.length
+        ? html`<button type="button" class="chevron" data-open=${String(open)} tabindex="-1" aria-label=${open ? "Close" : "Open"} title="Alt-click opens or closes everything inside" @click=${toggle}>
+            <svg viewBox="0 0 10 10" aria-hidden="true"><path d="M3.5 2l3 3-3 3" /></svg></button>`
+        : nothing;
+      rows.push(html`<div class=${classes} data-path=${keyString} role="treeitem" aria-level=${level} aria-expanded=${entries.length ? String(open) : nothing} tabindex="-1" style="--level:${level}"
+        @mouseenter=${() => this.#pair(pair)} @mouseleave=${() => this.#pair(undefined)}>
+        ${lead(line, fold)}<span class="code">${entries.length ? html`<span class="toggle" @click=${toggle}>${keyLabel}</span>` : keyLabel}${before}<span class=${entries.length ? "toggle" : ""} @click=${entries.length ? toggle : nothing}>${bracket(start, level, pair)}${open ? nothing : html`${entries.length ? html`<span class="ellipsis">…</span>` : nothing}${bracket(end, level, pair)}`}</span>${open ? nothing : comma(last)}${count}${tag}</span>
       </div>`);
-      if (!open) return;
-      for (const [childKey, child] of entries) walk(childKey, child, [...path, childKey], level + 1, value, key);
+      if (!open) {
+        line += lineCount(value);
+        return;
+      }
+      line++;
+      entries.forEach(([childKey, child], index) => walk(childKey, child, [...path, childKey], level + 1, value, key, index === entries.length - 1));
       for (const [removedKey, removed] of this.#removedByParent.get(keyString) ?? []) {
         rows.push(html`<div class="row removed" role="treeitem" aria-level=${level + 1} style="--level:${level + 1}">
-          <span class="gutter"></span><span class="key">${typeof removedKey === "number" ? removedKey : JSON.stringify(removedKey)}</span><span class="punct colon">:</span>
-          <span class="before">${preview(removed.before)}</span><span class="meta">Only in published</span>
+          ${lead(undefined)}<span class="code"><span class="key">${typeof removedKey === "number" ? removedKey : JSON.stringify(removedKey)}</span><span class="punct colon">:</span><span class="before">${preview(removed.before)}</span><span class="meta">Only in published</span></span>
         </div>`);
       }
-      rows.push(html`<div class="row close" aria-hidden="true" style="--level:${level}"><span class="gutter"></span><span class="punct">${end}</span></div>`);
+      rows.push(html`<div class="row close" aria-hidden="true" style="--level:${level}" @mouseenter=${() => this.#pair(pair)} @mouseleave=${() => this.#pair(undefined)}>
+        ${lead(line++)}<span class="code">${bracket(end, level, pair)}${comma(last)}</span></div>`);
     };
 
     // The response itself, so the top-level keys sit inside its braces as they do in the JSON.
     const [rootStart, rootEnd] = brackets(this.data);
-    rows.push(html`<div class="row root" aria-hidden="true" style="--level:0"><span class="punct">${rootStart}</span></div>`);
-    for (const [key, child] of children(this.data)) walk(key, child, [key], 1, this.data, undefined);
+    const total = lineCount(this.data);
+    const rootPair = ++pairs;
+    rows.push(html`<div class="row root" aria-hidden="true" style="--level:0" @mouseenter=${() => this.#pair(rootPair)} @mouseleave=${() => this.#pair(undefined)}>
+      ${lead(line++)}<span class="code">${bracket(rootStart, 0, rootPair)}</span></div>`);
+    const top = children(this.data);
+    top.forEach(([key, child], index) => walk(key, child, [key], 1, this.data, undefined, index === top.length - 1));
     for (const [removedKey, removed] of this.#removedByParent.get(pathKey([])) ?? []) {
-      rows.push(html`<div class="row removed" style="--level:1"><span class="gutter"></span><span class="key">${JSON.stringify(removedKey)}</span><span class="punct colon">:</span><span class="before">${preview(removed.before)}</span><span class="meta">Only in published</span></div>`);
+      rows.push(html`<div class="row removed" style="--level:1">${lead(undefined)}<span class="code"><span class="key">${JSON.stringify(removedKey)}</span><span class="punct colon">:</span><span class="before">${preview(removed.before)}</span><span class="meta">Only in published</span></span></div>`);
     }
-    rows.push(html`<div class="row root" aria-hidden="true" style="--level:0"><span class="punct">${rootEnd}</span></div>`);
+    rows.push(html`<div class="row root" aria-hidden="true" style="--level:0" @mouseenter=${() => this.#pair(rootPair)} @mouseleave=${() => this.#pair(undefined)}>
+      ${lead(total)}<span class="code">${bracket(rootEnd, 0, rootPair)}</span></div>`);
     if (searching && !this.#hits.length) {
       return html`<p class="empty">Nothing matches “${this.query.trim()}”.</p>`;
     }
     const thumb = this._thumb
       ? html`<img class="thumb" popover="manual" alt="" src=${this._thumb.src} style="top:${this._thumb.top}px;left:${this._thumb.left}px" />`
       : nothing;
-    return html`${thumb}<div class=${this.changes?.size ? "tree diff" : "tree"} role="tree" aria-label="Delivery API response" @keydown=${this.#onKeydown}
+    return html`${thumb}<style class="pair"></style><div class=${this.changes?.size ? "tree diff" : "tree"} role="tree" aria-label="Delivery API response"
+      style="--ln:${String(total).length}ch" @keydown=${this.#onKeydown}
       @focusin=${(event: FocusEvent) => (event.target as HTMLElement).setAttribute("tabindex", "0")}
       @focusout=${(event: FocusEvent) => (event.target as HTMLElement).setAttribute("tabindex", "-1")}>
       ${rows}
@@ -295,125 +323,176 @@ export class JsonTreeElement extends LitElement {
   }
 
   static styles = css`
+    /* Colours and metrics follow the backoffice's code editor (Monaco's light and dark themes), so
+       the tree reads like the JSON it is. */
     :host {
       display: block;
-      --json-key: #3730a3;
-      --json-string: #0f7a55;
-      --json-number: #b45309;
-      --json-boolean: #9333ea;
-      --json-null: var(--uui-color-text-alt);
-      --json-guide: var(--uui-color-divider-standalone, #e9e9eb);
+      --json-key: #a31515;
+      --json-string: #0451a5;
+      --json-number: #098658;
+      --json-keyword: #0000ff;
+      --json-b0: #0431fa;
+      --json-b1: #319331;
+      --json-b2: #7b3814;
+      --json-ln: #237893;
+      --json-guide: #d3d3d3;
+      --json-pair: rgb(0 100 0 / 0.1);
+      --json-pair-border: #b9b9b9;
+      --json-line: #eeeeee;
       --json-added: color-mix(in srgb, var(--uui-color-positive, #0b8152) 14%, transparent);
       --json-removed: color-mix(in srgb, var(--uui-color-danger, #d42054) 12%, transparent);
       --json-changed: color-mix(in srgb, var(--uui-color-warning, #fbd142) 22%, transparent);
       --json-mark: color-mix(in srgb, var(--uui-color-warning, #fbd142) 60%, transparent);
       --json-mark-current: var(--uui-color-warning, #fbd142);
       --json-current: color-mix(in srgb, var(--uui-color-selected, #3544b1) 9%, transparent);
-      font: 12.5px/1.75 var(--uui-font-monospace, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+      font: 12.5px/20px var(--uui-font-monospace, Menlo, Monaco, "Courier New", monospace);
       color: var(--uui-color-text);
     }
     :host([theme="dark"]) {
-      --json-key: #a5b4fc;
-      --json-string: #6ee7b7;
-      --json-number: #fbbf24;
-      --json-boolean: #d8b4fe;
+      --json-key: #9cdcfe;
+      --json-string: #ce9178;
+      --json-number: #b5cea8;
+      --json-keyword: #569cd6;
+      --json-b0: #ffd700;
+      --json-b1: #da70d6;
+      --json-b2: #179fff;
+      --json-ln: #858585;
+      --json-guide: #404040;
+      --json-pair: rgb(0 100 0 / 0.1);
+      --json-pair-border: #888888;
+      --json-line: #282828;
     }
-    /* The tab's panel scrolls the tree both ways; rows stretch to the widest one so hover and
-       highlights span the whole line. */
+    /* The tab's panel scrolls the tree both ways; rows stretch to the widest one so highlights span
+       the whole line. */
     .tree {
       padding: var(--uui-size-space-2, 6px) 0;
       width: max-content;
       min-width: 100%;
       box-sizing: border-box;
     }
+    /* A row is an editor line: its number, a column for − and + when there are changes, the fold
+       arrow, then the code indented two characters a level. */
     .row {
       position: relative;
       display: flex;
       align-items: baseline;
       white-space: nowrap;
-      /* The response's own braces sit in the first chevron column, so the top-level keys line up
-         just inside them without an extra step of indent. */
-      padding-left: calc(max(var(--level) - 1, 0) * 18px);
       padding-right: var(--uui-size-space-4, 12px);
-      /* One guide per open parent, centred under that parent's 18px chevron column. */
-      background-image: repeating-linear-gradient(to right, transparent 0 8.5px, var(--json-guide) 8.5px 9.5px, transparent 9.5px 18px);
-      background-size: calc((var(--level) - 1) * 18px) 100%;
-      background-position: 0 0;
-      background-repeat: no-repeat;
       outline: none;
     }
-    .row:hover,
-    .row:focus-visible {
-      background-color: var(--uui-color-surface-emphasis);
-    }
-    .row:focus-visible {
-      box-shadow: inset 0 0 0 2px var(--uui-color-focus);
-    }
-    .gutter {
+    .ln {
       flex: none;
-      width: 18px;
-      text-align: center;
-      color: var(--uui-color-text-alt);
+      width: var(--ln);
+      padding: 0 4px 0 12px;
+      text-align: right;
+      color: var(--json-ln);
+      user-select: none;
     }
+    .sign {
+      display: none;
+      flex: none;
+      width: 14px;
+      text-align: center;
+      font-weight: 600;
+    }
+    .tree.diff .sign { display: inline-block; }
+    .fold {
+      flex: none;
+      align-self: stretch;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      margin-right: 4px;
+    }
+    /* The code, indented two characters a level, with a guide at each level as in the editor. */
+    .code {
+      display: flex;
+      align-items: baseline;
+      padding-left: calc(var(--level) * 2ch);
+      background-image: repeating-linear-gradient(to right, var(--json-guide) 0 1px, transparent 1px 2ch);
+      background-size: calc(var(--level) * 2ch) 100%;
+      background-repeat: no-repeat;
+      align-self: stretch;
+    }
+    .row:hover .ln { color: var(--uui-color-text); }
+    .row:focus-visible {
+      background-color: var(--json-current);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--uui-color-focus) 70%, transparent);
+    }
+    /* Open arrows show while the pointer is over the tree, closed ones always, as in the editor. */
     button.chevron {
       all: unset;
-      flex: none;
-      width: 18px;
-      text-align: center;
+      display: grid;
+      place-items: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
       cursor: pointer;
       color: var(--uui-color-text-alt);
+      transition: opacity 150ms;
     }
-    button.chevron:hover {
-      color: var(--uui-color-text);
+    button.chevron svg {
+      width: 10px;
+      height: 10px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: transform 120ms;
     }
+    button.chevron[data-open="true"] svg { transform: rotate(90deg); }
+    button.chevron[data-open="true"] { opacity: 0; }
+    .tree:hover button.chevron, .row:focus-within button.chevron { opacity: 1; }
+    button.chevron:hover { color: var(--uui-color-text); background: var(--uui-color-surface-emphasis); }
     .key { color: var(--json-key); }
-    .root .punct { padding-left: 4px; }
-    .index, .punct, .meta { color: var(--uui-color-text-alt); }
-    .colon { margin-right: 0.6ch; }
-    .meta { margin-left: 6px; font-family: var(--uui-font-family); font-size: 11px; }
+    .index { color: var(--uui-color-text-alt); }
+    .punct { color: var(--uui-color-text); }
+    .colon { margin-right: 1ch; }
+    .bracket.b0 { color: var(--json-b0); }
+    .bracket.b1 { color: var(--json-b1); }
+    .bracket.b2 { color: var(--json-b2); }
+    .ellipsis {
+      margin: 0 2px;
+      padding: 0 3px;
+      border-radius: 3px;
+      line-height: 1.2;
+      color: var(--uui-color-text-alt);
+      background: var(--uui-color-surface-emphasis);
+    }
+    .meta { margin-left: 8px; font-family: var(--uui-font-family); font-size: 11px; color: var(--uui-color-text-alt); }
     .string { color: var(--json-string); }
     a.link { text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); text-underline-offset: 2px; }
     a.link:hover { text-decoration-color: currentColor; }
     .number { color: var(--json-number); }
-    .boolean { color: var(--json-boolean); }
-    .null { color: var(--json-null); }
+    .boolean, .null { color: var(--json-keyword); }
     .tag {
       margin-left: 8px;
       padding: 0 7px;
       border-radius: 99px;
       font: 600 10.5px/1.6 var(--uui-font-family);
-      background: color-mix(in srgb, var(--json-key) 10%, transparent);
-      color: var(--json-key);
+      background: var(--uui-color-surface-emphasis);
+      color: var(--uui-color-text-alt);
     }
-    /* A container's key and its brackets fold it too, not only the chevron. */
+    /* A container's key and its brackets fold it too, not only the arrow. */
     .toggle {
       cursor: pointer;
     }
-    /* With changes, the tree gets a column of its own at the left for − and +, outside the
-       indentation, as in a code review. A changed row's tint runs into that column, and the indent
-       guides carry on through it a shade darker so they still read on the tint. */
-    .tree.diff { padding-left: 16px; }
+    /* With changes, the − and + column tints with its row, as in a code review, and the indent
+       guides go a shade darker so they still read on the tint. */
     .added, .removed, .changed {
       background-color: var(--diff-tint);
-      box-shadow: -16px 0 0 var(--diff-tint);
       --json-guide: color-mix(in srgb, var(--diff-ink) 28%, transparent);
-    }
-    .added:focus-visible, .removed:focus-visible, .changed:focus-visible {
-      box-shadow: -16px 0 0 var(--diff-tint), inset 0 0 0 2px var(--uui-color-focus);
     }
     .added { --diff-tint: var(--json-added); --diff-ink: var(--uui-color-positive, #0b8152); }
     .removed { --diff-tint: var(--json-removed); --diff-ink: var(--uui-color-danger, #d42054); }
     .changed { --diff-tint: var(--json-changed); --diff-ink: var(--uui-color-warning-contrast, #8a5a00); }
-    .added::before, .removed::before, .changed::before {
-      position: absolute;
-      left: -12px;
-      font-weight: 600;
-    }
-    .added::before { content: "+"; color: var(--uui-color-positive); }
-    .removed::before { content: "−"; color: var(--uui-color-danger); }
-    .changed::before { content: "~"; color: var(--uui-color-warning-contrast, #8a5a00); }
+    .added .sign::before { content: "+"; color: var(--uui-color-positive); }
+    .removed .sign::before { content: "−"; color: var(--uui-color-danger); }
+    .changed .sign::before { content: "~"; color: var(--uui-color-warning-contrast, #8a5a00); }
     .before { margin-right: 8px; text-decoration: line-through; color: var(--uui-color-danger); }
-    .removed .before { text-decoration: none; }
+    .removed .before { margin-right: 0; text-decoration: none; }
     mark { background: var(--json-mark); color: inherit; border-radius: 2px; }
     /* The search hit Enter moved to: the whole row tinted, and its match in full colour. */
     .current { background-color: var(--json-current); }
@@ -434,6 +513,18 @@ export class JsonTreeElement extends LitElement {
     .empty { margin: 0; padding: var(--uui-size-space-5, 18px); color: var(--uui-color-text-alt); font-family: var(--uui-font-family); }
   `;
 }
+
+/** How many lines a value takes in JSON formatted with two-space indents. */
+const lineCounts = new WeakMap<object, number>();
+const lineCount = (value: Json): number => {
+  if (!isContainer(value)) return 1;
+  const known = lineCounts.get(value);
+  if (known !== undefined) return known;
+  const entries = children(value);
+  const count = entries.length ? 2 + entries.reduce((sum, [, child]) => sum + lineCount(child), 0) : 1;
+  lineCounts.set(value, count);
+  return count;
+};
 
 const preview = (value: Json | undefined): string => {
   if (value === undefined) return "";

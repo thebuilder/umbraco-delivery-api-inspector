@@ -20,7 +20,6 @@ type Expand = "none" | "all" | "pick";
 interface Saved {
   mode?: Mode;
   depth?: number;
-  view?: "tree" | "raw";
   expand?: Expand;
   changeStyle?: "diff" | "inline";
 }
@@ -54,7 +53,6 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
   @state() private _expand: Expand = "none";
   @state() private _expandPick: string[] = [];
   @state() private _fieldsPick: string[] = [];
-  @state() private _view: "tree" | "raw" = "tree";
   @state() private _changeStyle: "diff" | "inline" = "diff";
   @state() private _depth = 3;
   @state() private _query = "";
@@ -81,7 +79,6 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
     const saved = load();
     this._mode = saved.mode ?? "draft";
     this._depth = saved.depth ?? 3;
-    this._view = saved.view ?? "tree";
     this._changeStyle = saved.changeStyle ?? "diff";
     this._expand = saved.expand === "pick" ? "none" : (saved.expand ?? "none");
 
@@ -147,9 +144,9 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       this.#resize.disconnect();
       this.#resize.observe(this._urlElement);
     }
-    if (["_mode", "_depth", "_view", "_expand", "_changeStyle"].some((name) => changed.has(name))) {
+    if (["_mode", "_depth", "_expand", "_changeStyle"].some((name) => changed.has(name))) {
       try {
-        localStorage.setItem(storageKey, JSON.stringify({ mode: this._mode, depth: this._depth, view: this._view, expand: this._expand, changeStyle: this._changeStyle } satisfies Saved));
+        localStorage.setItem(storageKey, JSON.stringify({ mode: this._mode, depth: this._depth, expand: this._expand, changeStyle: this._changeStyle } satisfies Saved));
       } catch {
         // Private windows and blocked storage: the choices just are not remembered.
       }
@@ -353,7 +350,8 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       ${this.#menu("copy-menu", "end", html`
         <button type="button" class="item" role="menuitem" @click=${() => copy(origin + fullUrl(request), "Copied the URL.")}>Copy URL</button>
         <button type="button" class="item" role="menuitem" @click=${() => copy(toCurl(origin, request), "Copied the curl command.")}>Copy as curl</button>
-        <button type="button" class="item" role="menuitem" @click=${() => copy(toFetch(origin, request), "Copied the fetch call.")}>Copy as fetch</button>`)}`;
+        <button type="button" class="item" role="menuitem" @click=${() => copy(toFetch(origin, request), "Copied the fetch call.")}>Copy as fetch</button>
+        ${this._response ? html`<hr /><button type="button" class="item" role="menuitem" @click=${() => copy(JSON.stringify(this._response?.data, null, 2), "Copied the response.")}>Copy response</button>` : nothing}`)}`;
   }
 
   render() {
@@ -388,13 +386,12 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
                   ${this._mode === "changes" && this._changes ? html`<span class="count">${this._changes.size}</span>` : nothing}</button>
               </span></div>`
             : nothing}
-          ${isContent && this._mode === "changes" && this._view === "tree"
+          ${isContent && this._mode === "changes"
             ? this.#segmented("Changes as", this._changeStyle, [["diff", "Diff", "A red line for published and a green line for the draft"], ["inline", "Inline", "Published struck through, next to the draft"]], (value) => (this._changeStyle = value))
             : nothing}
           <span class="spacer"></span>
           ${this.#expandMenu()}
           ${this.#fieldsMenu()}
-          ${this.#segmented("View", this._view, [["tree", "Tree"], ["raw", "Raw", "Read-only JSON in the code editor"]], (value) => (this._view = value))}
         </div>
         <div class="panel-header">
         ${request
@@ -422,8 +419,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         </div>
         </div>
         ${offNote ? html`<p class="note">${offNote}</p>` : nothing}
-        ${this._view === "tree"
-          ? html`<div class="find">
+        <div class="find">
               <label class="search-field">
                 <uui-icon name="icon-search"></uui-icon>
                 <input class="search" type="text" role="searchbox" aria-label="Search keys and values" placeholder="Search keys and values, or type a path like properties.image[0].url"
@@ -436,8 +432,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
                 ${this._query ? html`<button type="button" class="clear" aria-label="Clear search" title="Clear search" @click=${(event: Event) => { event.preventDefault(); this._query = ""; this.shadowRoot?.querySelector<HTMLInputElement>("input.search")?.focus(); }}></button>` : nothing}
               </label>
               ${this.#segmented("Open levels", this._depth, [[1, "1", "Show the tree one level deep"], [2, "2", "Two levels deep"], [3, "3", "Three levels deep"], [99, "All", "Open every level"]], (value) => { this._depth = value; this.shadowRoot?.querySelector("thebuilder-json-tree")?.reset(); })}
-            </div>`
-          : nothing}
+            </div>
         <div class="body">${this.#body()}</div>
       </section>
     `;
@@ -456,10 +451,6 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       return html`<p class="state">Draft and published return the same response.</p>`;
     }
     const data: Json = this._response.data;
-    if (this._view === "raw") {
-      void import("@umbraco-cms/backoffice/code-editor");
-      return html`<umb-code-editor class="raw" language="json" readonly .code=${JSON.stringify(data, null, 2)}></umb-code-editor>`;
-    }
     return html`<thebuilder-json-tree class=${this._loading ? "loading" : ""} theme=${this._theme} .data=${data} .changes=${this._mode === "changes" ? this._changes : undefined}
       .depth=${this._depth} .query=${this._query} changeStyle=${this._changeStyle}
       @hits=${(event: CustomEvent<TreeHits>) => (this._hits = event.detail)}></thebuilder-json-tree>`;
@@ -559,11 +550,21 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       .select .box:focus-visible {
         outline: 2px solid var(--uui-color-focus);
       }
+      /* A fixed width, so ticking properties never shifts the toolbar. */
+      .select .box {
+        width: 132px;
+      }
       .select .value {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         color: var(--uui-color-text);
       }
       .select .chevron,
       .copy-button .chevron {
+        flex: none;
         width: 10px;
         height: 6px;
         margin-top: -2px;
@@ -946,10 +947,6 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       thebuilder-json-tree.loading {
         opacity: 0.55;
         transition: opacity 120ms;
-      }
-      .raw {
-        display: block;
-        height: 100%;
       }
       .state {
         display: flex;

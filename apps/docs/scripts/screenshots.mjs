@@ -74,12 +74,8 @@ await view.locator("input.search").fill("");
 await open(harbourMornings);
 await view.getByRole("button", { name: /Changes/ }).click();
 await shot("changes");
+
 await view.getByRole("button", { name: "Draft" }).click();
-await view.getByRole("button", { name: "Raw" }).click();
-await page.locator("umb-code-editor").waitFor();
-await page.waitForTimeout(1500);
-await shot("raw");
-await view.getByRole("button", { name: "Tree" }).click();
 
 await open(harbourImage, "media");
 await tree.locator(".row", { hasText: '"url"' }).first().hover();

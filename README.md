@@ -21,7 +21,7 @@ frontend receives, without Swagger, an API client or a copied API key.
 - **Draft first, with a switch.** See the draft you are editing, flip to what is published, or see
   exactly what publishing the draft would change.
 - **Made for reading.** A tree you can search and filter, open levels at a click, and `expand` and
-  `fields` without typing the syntax. A Raw view when you want the text.
+  `fields` without typing the syntax, laid out like the JSON in a code editor.
 - **Aware of Umbraco.** Blocks and pickers show their content type, media URLs show a thumbnail on
   hover, and a GUID opens its document or media item.
 - **Ready to copy.** The request is shown on one line with its headers, and copies as a curl command
