@@ -359,7 +359,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
     if (this._configError) return html`<uui-box><p class="state">${this._configError}</p></uui-box>`;
     const config = this._config;
     if (!config) return html`<div class="state"><uui-loader></uui-loader></div>`;
-    if (!config.allowed) return html`<uui-box><p class="state">Your user group cannot use the API tab. Ask an administrator to add it under DeliveryApiInspector:UserGroups.</p></uui-box>`;
+    if (!config.allowed) return html`<uui-box><p class="state">Your user groups do not have the View Delivery API output permission. An administrator can tick it on your group under Users, User groups.</p></uui-box>`;
     if (!config.deliveryApi.installed) return html`<uui-box><p class="state">This site does not add the Delivery API. Call <code>AddDeliveryApi()</code> in Program.cs to use the API tab.</p></uui-box>`;
 
     const request = this.#request;

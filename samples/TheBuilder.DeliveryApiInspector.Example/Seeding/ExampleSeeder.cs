@@ -20,7 +20,8 @@ public sealed class ExampleSeederComposer : IComposer
         builder
             .AddNotificationAsyncHandler<UmbracoApplicationStartedNotification, ExampleSeeder>()
             .AddNotificationAsyncHandler<UmbracoApplicationStartedNotification, ExampleSiteSeeder>()
-            .AddNotificationAsyncHandler<UmbracoApplicationStartedNotification, ExampleApiUserSeeder>();
+            .AddNotificationAsyncHandler<UmbracoApplicationStartedNotification, ExampleApiUserSeeder>()
+            .AddNotificationAsyncHandler<UmbracoApplicationStartedNotification, ExampleInstallSeeder>();
     }
 }
 

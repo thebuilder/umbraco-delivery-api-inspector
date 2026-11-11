@@ -79,6 +79,12 @@ export const api = {
     return config;
   },
 
+  /** Whether the current user may use the tab on a document, by permission or a group named in settings. */
+  async contentAccess(id: string): Promise<boolean> {
+    const response = await request(`delivery-api-inspector/api/access/content/${id}`);
+    return ((await response.json()) as { allowed: boolean }).allowed;
+  },
+
   async item(
     type: "content" | "media",
     id: string,

@@ -5,7 +5,7 @@ seo:
   image: /og/configuration.png
 ---
 
-Every setting is optional. With none, administrators see the API tab on documents and media items.
+Every setting is optional. With none, the user groups with the View Delivery API output permission see the API tab, which out of the box is Administrators. See [Access](/access).
 
 ```json appsettings.json
 {
@@ -21,7 +21,7 @@ Every setting is optional. With none, administrators see the API tab on document
 | --- | --- | --- |
 | `Enabled` | `true` | Shows the API tab. Turn it off to hide the tab and refuse the package's API on an environment, such as production. |
 | `Media` | `true` | Shows the API tab on media items too. |
-| `UserGroups` | `[]` | The aliases of the user groups that see the tab. Empty means administrators only. |
+| `UserGroups` | `[]` | The aliases of user groups that see the tab on every item, whatever their permissions. For access kept in code rather than in the backoffice. |
 
 The package's API reads the settings on every request, so a change to appsettings takes effect without a restart. The backoffice decides whether to show the tab when it loads, so reload it to see the tab appear or go.
 
