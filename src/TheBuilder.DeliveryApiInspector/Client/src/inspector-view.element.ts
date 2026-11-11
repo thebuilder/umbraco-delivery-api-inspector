@@ -383,7 +383,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
                   title=${this._published ? "What frontends get today" : "Not published yet"} @click=${() => (this._mode = "published")}><span class="t">Published</span></button>
                 <button type="button" aria-pressed=${String(this._mode === "changes")} ?disabled=${!this._published}
                   title="What publishing the draft would change" @click=${() => (this._mode = "changes")}><span class="t">Changes</span>
-                  ${this._mode === "changes" && this._changes ? html`<span class="count">${this._changes.size}</span>` : nothing}</button>
+                  ${this._mode === "changes" && this._changes ? html`<span class="count"><span class="t">${this._changes.size}</span></span>` : nothing}</button>
               </span></div>`
             : nothing}
           ${isContent && this._mode === "changes"
@@ -782,10 +782,17 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         border-radius: 50%;
         background: var(--uui-color-warning-standalone, #e0a100);
       }
+      /* A circle for one digit, a pill for more. */
       .count {
-        padding: 0 6px;
+        display: inline-grid;
+        place-items: center;
+        min-width: 18px;
+        height: 18px;
+        box-sizing: border-box;
+        padding: 0 5px;
         border-radius: 99px;
         font-size: 11px;
+        font-variant-numeric: tabular-nums;
         background: var(--uui-color-warning, #fbd142);
         color: var(--uui-color-warning-contrast, #000);
       }
