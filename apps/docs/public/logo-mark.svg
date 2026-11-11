@@ -1,19 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true">
-  <!-- A pair of JSON braces in the family's blue and pink, with the violet lens of an inspector over them. -->
+  <!-- A pair of JSON braces in the family's blue and pink, around lines of a response with one row picked out in violet. -->
   <defs>
     <filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="10"/></filter>
     <path id="brace-left" d="M78 40Q46 40 46 72V104Q46 122 28 128Q46 134 46 152V184Q46 216 78 216"/>
     <path id="brace-right" d="M178 40Q210 40 210 72V104Q210 122 228 128Q210 134 210 152V184Q210 216 178 216"/>
   </defs>
   <g fill="none" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" opacity=".42" filter="url(#glow)">
-    <use href="#brace-left" stroke="#60a5fa"/>
-    <use href="#brace-right" stroke="#ed63ad"/>
+    <use href="#brace-left" stroke="#60a5fa"/><use href="#brace-right" stroke="#ed63ad"/>
   </g>
   <g fill="none" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" opacity=".92">
-    <use href="#brace-left" stroke="#60a5fa"/>
-    <use href="#brace-right" stroke="#ed63ad"/>
+    <use href="#brace-left" stroke="#60a5fa"/><use href="#brace-right" stroke="#ed63ad"/>
   </g>
-  <circle cx="118" cy="114" r="40" fill="#9b83ec" fill-opacity=".18" stroke="#9b83ec" stroke-width="15"/>
-  <path d="M148 144L176 172" fill="none" stroke="#fff" stroke-width="17" stroke-linecap="round"/>
-  <path d="M100 104H136M100 124H124" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round"/>
+  <rect x="78" y="106" width="104" height="44" rx="14" fill="#9b83ec" opacity=".42" filter="url(#glow)"/>
+  <rect x="78" y="106" width="104" height="44" rx="14" fill="#9b83ec" opacity=".92"/>
+  <g fill="none" stroke="#fff" stroke-width="13" stroke-linecap="round">
+    <path d="M90 84H138"/><path d="M106 128H164"/><path d="M106 172H146"/>
+  </g>
 </svg>
