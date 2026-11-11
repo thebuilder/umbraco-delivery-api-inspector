@@ -19,7 +19,8 @@ type Expand = "none" | "all" | "pick";
 
 interface Saved {
   mode?: Mode;
-  depth?: number;
+  /** The levels picked by hand. Unset, the tree opens fully, or two levels for a large response. */
+  levels?: number;
   expand?: Expand;
   changeStyle?: "diff" | "inline";
 }
@@ -54,7 +55,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
   @state() private _expandPick: string[] = [];
   @state() private _fieldsPick: string[] = [];
   @state() private _changeStyle: "diff" | "inline" = "diff";
-  @state() private _depth = 3;
+  @state() private _depth?: number;
   @state() private _query = "";
   @state() private _hits?: TreeHits;
 
@@ -78,7 +79,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
     super();
     const saved = load();
     this._mode = saved.mode ?? "draft";
-    this._depth = saved.depth ?? 3;
+    this._depth = saved.levels;
     this._changeStyle = saved.changeStyle ?? "diff";
     this._expand = saved.expand === "pick" ? "none" : (saved.expand ?? "none");
 
@@ -146,7 +147,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
     }
     if (["_mode", "_depth", "_expand", "_changeStyle"].some((name) => changed.has(name))) {
       try {
-        localStorage.setItem(storageKey, JSON.stringify({ mode: this._mode, depth: this._depth, expand: this._expand, changeStyle: this._changeStyle } satisfies Saved));
+        localStorage.setItem(storageKey, JSON.stringify({ mode: this._mode, levels: this._depth, expand: this._expand, changeStyle: this._changeStyle } satisfies Saved));
       } catch {
         // Private windows and blocked storage: the choices just are not remembered.
       }
@@ -431,11 +432,23 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
                 <span class="hits">${this.#hitsLabel()}</span>
                 ${this._query ? html`<button type="button" class="clear" aria-label="Clear search" title="Clear search" @click=${(event: Event) => { event.preventDefault(); this._query = ""; this.shadowRoot?.querySelector<HTMLInputElement>("input.search")?.focus(); }}></button>` : nothing}
               </label>
-              ${this.#segmented("Open levels", this._depth, [[1, "1", "Show the tree one level deep"], [2, "2", "Two levels deep"], [3, "3", "Three levels deep"], [99, "All", "Open every level"]], (value) => { this._depth = value; this.shadowRoot?.querySelector("thebuilder-json-tree")?.reset(); })}
+              ${this.#segmented("Open levels", this.#levels, [[1, "1", "Show the tree one level deep"], [2, "2", "Two levels deep"], [3, "3", "Three levels deep"], [99, "All", "Open every level"]], (value) => { this._depth = value; this.shadowRoot?.querySelector("thebuilder-json-tree")?.reset(); })}
             </div>
         <div class="body">${this.#body()}</div>
       </section>
     `;
+  }
+
+  /**
+   * How many levels are open: the user's pick, or everything, as JSON viewers open a small response,
+   * and two levels for a large one, which is slow to draw and hard to scan fully open.
+   */
+  get #levels(): number {
+    if (this._depth !== undefined) return this._depth;
+    const response = this._response;
+    if (!response) return 99;
+    const large = response.bytes > 200 * 1024 || JSON.stringify(response.data, null, 2).split("\n").length > 1000;
+    return large ? 2 : 99;
   }
 
   #hitsLabel() {
@@ -452,7 +465,8 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
     }
     const data: Json = this._response.data;
     return html`<thebuilder-json-tree class=${this._loading ? "loading" : ""} theme=${this._theme} .data=${data} .changes=${this._mode === "changes" ? this._changes : undefined}
-      .depth=${this._depth} .query=${this._query} changeStyle=${this._changeStyle}
+      .depth=${this.#levels} .query=${this._query} changeStyle=${this._changeStyle}
+      .types=${{ document: this._config?.documentTypes ?? null, media: this._config?.mediaTypes ?? null }}
       @hits=${(event: CustomEvent<TreeHits>) => (this._hits = event.detail)}
       @copied=${(event: CustomEvent<string>) => this.#notification?.peek("positive", { data: { message: event.detail } })}></thebuilder-json-tree>`;
   }
@@ -556,7 +570,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       }
       /* A fixed width, so ticking properties never shifts the toolbar. */
       .select .box {
-        width: 132px;
+        width: 120px;
       }
       .select .value {
         flex: 1;
@@ -926,7 +940,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         font: 500 12.5px var(--uui-font-family);
         color: var(--uui-color-text);
         background: var(--uui-color-surface);
-        box-shadow: 0 0 0 1px var(--inspector-line), 0 1px 2px rgb(0 0 0 / 0.06);
+        box-shadow: inset 0 0 0 1px var(--inspector-line), 0 1px 2px rgb(0 0 0 / 0.06);
         transition: background-color 120ms, box-shadow 120ms;
       }
       .copy-button uui-icon {

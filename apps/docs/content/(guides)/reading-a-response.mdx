@@ -9,7 +9,7 @@ The API tab shows the response as a tree. Objects and arrays collapse to one lin
 
 ## Open levels
 
-The **Open levels** control opens the tree to a depth: 1 shows the top-level keys, 2 and 3 open the next levels, and All opens everything. The choice is remembered for the next item you open.
+The **Open levels** control opens the tree to a depth: 1 shows the top-level keys, 2 and 3 open the next levels, and All opens everything. A response opens fully by default, or 2 levels deep when it is over 1,000 lines or 200 KB. Once you pick a depth, it is remembered for the next item you open.
 
 Click a branch's arrow, key or brackets to open or close it. Alt-click opens or closes it with everything under it.
 
@@ -36,7 +36,7 @@ The tree looks like the response in a code editor: line numbers from the formatt
 
 ## Umbraco-aware rows
 
-- A collapsed block or picked item shows its `contentType`, and a media item its `mediaType`.
+- A collapsed block or picked item shows its `contentType`, and a media item its `mediaType`. For users with the Settings section, the label is a link that opens the document or media type, in a new tab.
 - Hovering a row with a media URL shows a thumbnail of the image.
 - A GUID that names a document or media item is a link that opens it in the backoffice, in a new tab.
 

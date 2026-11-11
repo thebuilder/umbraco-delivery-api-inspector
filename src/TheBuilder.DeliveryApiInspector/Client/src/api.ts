@@ -18,6 +18,9 @@ export const backofficeOrigin = (): string => configuration.baseUrl || window.lo
 export interface InspectorConfig {
   allowed: boolean;
   media: boolean;
+  /** Document and media type keys by alias, for users who can open Settings; null for others. */
+  documentTypes: Record<string, string> | null;
+  mediaTypes: Record<string, string> | null;
   deliveryApi: {
     installed: boolean;
     enabled: boolean;
@@ -136,5 +139,8 @@ export function thumbnail(id: string, size = 160): Promise<string | undefined> {
 }
 
 /** Where a document or media item opens in the backoffice. */
+export const typeUrl = (kind: "document-type" | "media-type", id: string): string =>
+  `${configuration.baseUrl}/umbraco/section/settings/workspace/${kind}/edit/${id}`;
+
 export const editUrl = (kind: ItemKind, id: string): string =>
   `${configuration.baseUrl}/umbraco/section/${kind === "document" ? "content" : "media"}/workspace/${kind}/edit/${id}`;

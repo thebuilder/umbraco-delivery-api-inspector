@@ -1,5 +1,5 @@
 import { css, customElement, html, LitElement, nothing, property, state, type PropertyValues, type TemplateResult } from "@umbraco-cms/backoffice/external/lit";
-import { api, backofficeOrigin, editUrl, thumbnail } from "./api.js";
+import { api, backofficeOrigin, editUrl, thumbnail, typeUrl } from "./api.js";
 import {
   changedAncestors,
   children,
@@ -41,6 +41,8 @@ export class JsonTreeElement extends LitElement {
   @property({ type: Number }) depth = 3;
   /** Text to search keys and values for, or a path such as properties.image[0].url to jump to. */
   @property() query = "";
+  /** Document and media type keys by alias, so a type badge can open its type. */
+  @property({ attribute: false }) types?: { document: Record<string, string> | null; media: Record<string, string> | null };
 
   @state() private _overrides = new Map<string, boolean>();
   @state() private _hit = 0;
@@ -200,6 +202,17 @@ export class JsonTreeElement extends LitElement {
     }
   }
 
+  /** The content or media type an object is, as a badge that opens the type where the user can edit it. */
+  #tag(value: { [key: string]: Json }) {
+    const alias = typeof value.contentType === "string" ? value.contentType : typeof value.mediaType === "string" ? value.mediaType : undefined;
+    if (!alias) return nothing;
+    const media = typeof value.contentType !== "string";
+    const key = (media ? this.types?.media : this.types?.document)?.[alias];
+    if (!key) return html`<span class="tag" data-text=${alias}></span>`;
+    return html`<a class="tag" data-text=${alias} href=${typeUrl(media ? "media-type" : "document-type", key)} target="_blank" rel="noopener"
+      title=${`Open the ${alias} ${media ? "media" : "document"} type`} aria-label=${`Open the ${alias} ${media ? "media" : "document"} type`}></a>`;
+  }
+
   /** Lights up one pair of brackets, as an editor does at the cursor, without rendering the tree again. */
   #pair(id: number | undefined): void {
     const style = this.renderRoot.querySelector<HTMLStyleElement>("style.pair");
@@ -260,9 +273,7 @@ export class JsonTreeElement extends LitElement {
       const open = entries.length > 0 && this.#isOpen(path, level);
       const [start, end] = brackets(value);
       const pair = ++pairs;
-      const tag = !Array.isArray(value) && typeof (value.contentType ?? value.mediaType) === "string"
-        ? html`<span class="tag" data-text=${value.contentType ?? value.mediaType}></span>`
-        : nothing;
+      const tag = Array.isArray(value) ? nothing : this.#tag(value);
       const count = Array.isArray(value) && entries.length ? html`<span class="meta" data-text=${`${entries.length} ${entries.length === 1 ? "item" : "items"}`}></span>` : nothing;
       const toggle = (event: MouseEvent) => this.#toggle(event, path, value, open);
       const fold = entries.length
@@ -480,8 +491,9 @@ export class JsonTreeElement extends LitElement {
     .meta::after, .tag::after, .ellipsis::after { content: attr(data-text); }
     .meta { margin-left: 8px; font-family: var(--uui-font-family); font-size: 11px; color: var(--uui-color-text-alt); }
     .string { color: var(--json-string); }
-    a.link { text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); text-underline-offset: 2px; }
-    a.link:hover { text-decoration-color: currentColor; }
+    /* GUIDs that open their item read as links by colour, and underline when you point at them. */
+    a.link { text-decoration: none; text-underline-offset: 2px; }
+    a.link:hover, a.link:focus-visible { text-decoration: underline; }
     .number { color: var(--json-number); }
     .boolean, .null { color: var(--json-keyword); }
     .tag {
@@ -491,7 +503,13 @@ export class JsonTreeElement extends LitElement {
       font: 600 10.5px/1.6 var(--uui-font-family);
       background: var(--json-badge);
       color: var(--uui-color-text-alt);
+      text-decoration: none;
     }
+    a.tag:hover, a.tag:focus-visible {
+      background: color-mix(in srgb, var(--uui-color-interactive, #1b264f) 14%, transparent);
+      color: var(--uui-color-interactive-emphasis, var(--uui-color-text));
+    }
+    a.tag:focus-visible { outline: 2px solid var(--uui-color-focus); }
     button.copy {
       all: unset;
       display: inline-grid;

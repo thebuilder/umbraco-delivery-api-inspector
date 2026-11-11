@@ -120,6 +120,26 @@ describe("access", () => {
     assert.equal(body.deliveryApi.path, "/umbraco/delivery/api/v2");
   });
 
+  it("gives a Settings user each document and media type's key by alias, as the Management API has them", async () => {
+    const { body } = await inspector("/config");
+    for (const [kind, map] of [["document-type", body.documentTypes], ["media-type", body.mediaTypes]]) {
+      const types = {};
+      const visit = async (path) => {
+        const { body: page } = await json(`${site}/umbraco/management/api/v1/tree/${kind}/${path}`, { Authorization: `Bearer ${token}` });
+        for (const item of page.items) {
+          if (!item.isFolder) {
+            const { body: type } = await json(`${site}/umbraco/management/api/v1/${kind}/${item.id}`, { Authorization: `Bearer ${token}` });
+            types[type.alias] = item.id;
+          }
+          if (item.hasChildren) await visit(`children?parentId=${item.id}&take=1000`);
+        }
+      };
+      await visit("root?take=1000");
+      assert.ok(Object.keys(types).length > 0, `The sample has no ${kind}s to compare.`);
+      assert.deepEqual(map, types, kind);
+    }
+  });
+
   it("answers a malformed expand the way the Delivery API does, with a 400", async () => {
     const { status } = await inspector(`/content/e0000000-0000-0000-0000-000000000001?expand=properties[`);
     assert.equal(status, 400);

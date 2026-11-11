@@ -54,11 +54,21 @@ public sealed class InspectorController(
     {
         DeliveryApiInspectorOptions inspector = options.CurrentValue;
         DeliveryApiSettings delivery = deliveryApiSettings.CurrentValue;
-        bool allowed = InspectorAccessHandler.IsAllowed(securityAccessor.BackOfficeSecurity?.CurrentUser, inspector);
+        IUser? user = securityAccessor.BackOfficeSecurity?.CurrentUser;
+        bool allowed = InspectorAccessHandler.IsAllowed(user, inspector);
+        // The keys of the document and media types by alias, so a type badge can open its type. Only
+        // for users who can open Settings, where those types are edited.
+        bool settings = allowed && user?.AllowedSections.Contains(UmbracoConstants.Applications.Settings) == true;
         return Ok(new
         {
             allowed,
             media = allowed && inspector.Media,
+            documentTypes = settings
+                ? HttpContext.RequestServices.GetRequiredService<IContentTypeService>().GetAll().ToDictionary(type => type.Alias, type => type.Key)
+                : null,
+            mediaTypes = settings
+                ? HttpContext.RequestServices.GetRequiredService<IMediaTypeService>().GetAll().ToDictionary(type => type.Alias, type => type.Key)
+                : null,
             deliveryApi = new
             {
                 // Whether the site called AddDeliveryApi(); without it there is nothing to show.
