@@ -82,6 +82,15 @@ await tree.locator(".row", { hasText: '"url"' }).first().hover();
 await page.locator("img.thumb, thebuilder-json-tree >> img.thumb").first().waitFor({ state: "visible" }).catch(() => {});
 await shot("media");
 
+// The permission in the Administrators group's default document permissions.
+await page.goto(`${umbracoUrl}/umbraco/section/user-management/workspace/user-group/edit/e5e7f6c8-7f9c-4b5b-8d5d-9e1e5a4f7e4d`);
+const permission = page.getByText("View Delivery API output").first();
+await permission.waitFor();
+await permission.scrollIntoViewIfNeeded();
+await page.waitForTimeout(400);
+const box = await permission.boundingBox();
+await page.screenshot({ path: `${contentDir}/user-group-permission.png`, clip: { x: box.x - 110, y: box.y - 130, width: 720, height: 220 } });
+
 await browser.close();
 
 for (const name of ["document", "changes"]) {

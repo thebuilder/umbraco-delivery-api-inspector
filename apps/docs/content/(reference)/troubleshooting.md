@@ -7,11 +7,11 @@ seo:
 
 ## The API tab is missing
 
-- The tab is for administrators only until `DeliveryApiInspector:UserGroups` names other groups. See [Access](/access).
+- The user needs a group with the **View Delivery API output** permission, for this document if the group sets permissions on part of the tree, or a group named in `DeliveryApiInspector:UserGroups`. See [Access](/access).
 - A new document has no tab until it has been saved once.
 - `DeliveryApiInspector:Enabled` may be off for this environment.
 - On media items, `DeliveryApiInspector:Media` may be off.
-- After changing these settings, reload the backoffice. It checks for the tab when it loads.
+- After changing a setting in appsettings, reload the backoffice. It reads the settings when it loads.
 
 ## The tab says the Delivery API is not added
 

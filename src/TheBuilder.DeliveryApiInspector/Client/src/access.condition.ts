@@ -1,3 +1,4 @@
+import { UMB_ENTITY_CONTEXT } from "@umbraco-cms/backoffice/entity";
 import { UmbConditionBase } from "@umbraco-cms/backoffice/extension-registry";
 import type { UmbConditionConfigBase, UmbConditionControllerArguments, UmbExtensionCondition } from "@umbraco-cms/backoffice/extension-api";
 import type { UmbControllerHost } from "@umbraco-cms/backoffice/controller-api";
@@ -10,12 +11,37 @@ export interface AccessConditionConfig extends UmbConditionConfigBase<typeof ACC
   media?: boolean;
 }
 
-/** Shows the API tab to the user groups DeliveryApiInspector:UserGroups names, administrators by default. */
+/**
+ * Shows the API tab to users whose groups have the View Delivery API output permission, or are named
+ * in DeliveryApiInspector:UserGroups. A document asks the server, which applies the permission the
+ * way Umbraco does: the closest permission set on the document's path, or else the group's default.
+ */
 export class AccessCondition extends UmbConditionBase<AccessConditionConfig> implements UmbExtensionCondition {
   constructor(host: UmbControllerHost, args: UmbConditionControllerArguments<AccessConditionConfig>) {
     super(host, args);
     api.config().then(
-      (config) => (this.permitted = args.config.media ? config.media : config.allowed),
+      (config) => {
+        if (args.config.media) {
+          this.permitted = config.media;
+          return;
+        }
+        if (!config.allowed) {
+          this.permitted = false;
+          return;
+        }
+        this.consumeContext(UMB_ENTITY_CONTEXT, (context) => {
+          this.observe(context?.unique, (unique) => {
+            if (!unique) {
+              this.permitted = false;
+              return;
+            }
+            api.contentAccess(unique).then(
+              (allowed) => (this.permitted = allowed),
+              () => (this.permitted = false),
+            );
+          }, "_unique");
+        });
+      },
       () => (this.permitted = false),
     );
   }

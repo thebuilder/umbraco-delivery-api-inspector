@@ -62,7 +62,7 @@ public sealed class InspectorController(
         return Ok(new
         {
             allowed,
-            media = allowed && inspector.Media,
+            media = InspectorAccessHandler.IsAllowedForMedia(user, inspector),
             documentTypes = settings
                 ? HttpContext.RequestServices.GetRequiredService<IContentTypeService>().GetAll().ToDictionary(type => type.Alias, type => type.Key)
                 : null,
@@ -82,6 +82,17 @@ public sealed class InspectorController(
             },
         });
     }
+
+    /// <summary>
+    ///     Whether the current user may use the tab on a document: through a user group named in settings,
+    ///     or the inspector's permission on the document, as a user group has it by default or for that
+    ///     part of the content tree.
+    /// </summary>
+    /// <param name="id">The document's key.</param>
+    [HttpGet("access/content/{id:guid}")]
+    [Authorize(Policy = InspectorAccessRequirement.Policy)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ContentAccess(Guid id) => Ok(new { allowed = await MayInspectContent(id) });
 
     /// <summary>
     ///     The Delivery API response for a document, as <c>GET /umbraco/delivery/api/v2/content/item/{id}</c>
@@ -107,6 +118,13 @@ public sealed class InspectorController(
         if (!await MayBrowseContent(id))
         {
             return NotFoundProblem("The document does not exist, or you cannot browse it.");
+        }
+
+        if (!await MayInspectContent(id))
+        {
+            return Problem(
+                statusCode: StatusCodes.Status403Forbidden,
+                title: "Your user groups do not have the View Delivery API output permission on this document.");
         }
 
         return await Build(preview, culture, segment, async () =>
@@ -141,7 +159,8 @@ public sealed class InspectorController(
             return NotInstalled();
         }
 
-        if (!options.CurrentValue.Media || !await MayBrowseMedia(id))
+        if (!InspectorAccessHandler.IsAllowedForMedia(securityAccessor.BackOfficeSecurity?.CurrentUser, options.CurrentValue)
+            || !await MayBrowseMedia(id))
         {
             return NotFoundProblem("The media item does not exist, or you cannot browse it.");
         }
@@ -228,6 +247,25 @@ public sealed class InspectorController(
         IContentPermissionService permissions = HttpContext.RequestServices.GetRequiredService<IContentPermissionService>();
         return user is not null
             && await permissions.AuthorizeAccessAsync(user, id, ActionBrowse.ActionLetter) == ContentAuthorizationStatus.Success;
+    }
+
+    private async Task<bool> MayInspectContent(Guid id)
+    {
+        IUser? user = securityAccessor.BackOfficeSecurity?.CurrentUser;
+        if (user is null)
+        {
+            return false;
+        }
+
+        if (InspectorAccessHandler.InNamedGroup(user, options.CurrentValue))
+        {
+            return true;
+        }
+
+        // The same check Umbraco makes for its own document permissions: the closest granular
+        // permission on the document's path, or else the groups' defaults, inside the start nodes.
+        IContentPermissionService permissions = HttpContext.RequestServices.GetRequiredService<IContentPermissionService>();
+        return await permissions.AuthorizeAccessAsync(user, id, InspectorAccessHandler.Permission) == ContentAuthorizationStatus.Success;
     }
 
     private async Task<bool> MayBrowseMedia(Guid id)

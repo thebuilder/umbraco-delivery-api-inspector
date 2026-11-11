@@ -5,7 +5,34 @@ seo:
   image: /og/access.png
 ---
 
-The API tab is for developers. By default only administrators see it. Name other groups in [`UserGroups`](/configuration) to let them in.
+The API tab is for developers. A user sees it when one of their user groups has the **View Delivery API output** permission. The package gives it to Administrators once, when it is installed or upgraded, so out of the box only administrators see the tab. Take it off Administrators and it stays off.
+
+## Give a group the tab
+
+<Steps>
+<Step title="Open the user group">
+
+In the backoffice, go to **Users**, then **User groups**, and open the group.
+
+</Step>
+<Step title="Tick the permission">
+
+Under **Default permissions** for documents, turn on **View Delivery API output**, and save. Members see the tab the next time they load the backoffice.
+
+</Step>
+</Steps>
+
+![The View Delivery API output permission, turned on in a user group's default permissions for documents.](../screenshots/user-group-permission.png)
+
+Like Umbraco's own document permissions, it can also be set for part of the content tree, under **Permissions** on the same group. There it opens or closes the tab for a document and everything below it, and the closest setting on a document's path wins.
+
+Media items have no permissions of their own in Umbraco, so the tab on media follows a group's default document permission.
+
+## Groups named in settings
+
+To keep access in code instead, name the groups in [`UserGroups`](/configuration). Members of those groups see the tab on every item, whatever their permissions.
+
+## What a user can see
 
 A user with the tab sees an item's output only when they could browse the item anyway: the document needs the Browse permission for that user, and the item has to be inside the user's start nodes. Otherwise the tab answers that the item does not exist, or that they cannot browse it.
 

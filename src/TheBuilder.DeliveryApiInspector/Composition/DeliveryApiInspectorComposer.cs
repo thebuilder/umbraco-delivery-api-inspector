@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using TheBuilder.DeliveryApiInspector.Configuration;
 using TheBuilder.DeliveryApiInspector.ManagementApi;
+using TheBuilder.DeliveryApiInspector.Migrations;
 using Umbraco.Cms.Core.Composing;
 using Umbraco.Cms.Core.DependencyInjection;
+using Umbraco.Extensions;
 
 namespace TheBuilder.DeliveryApiInspector.Composition;
 
@@ -22,5 +24,6 @@ public sealed class DeliveryApiInspectorComposer : IComposer
         builder.Services.AddAuthorization(options => options.AddPolicy(
             InspectorAccessRequirement.Policy,
             policy => policy.AddRequirements(new InspectorAccessRequirement())));
+        builder.PackageMigrationPlans().Add<InspectorMigrationPlan>();
     }
 }

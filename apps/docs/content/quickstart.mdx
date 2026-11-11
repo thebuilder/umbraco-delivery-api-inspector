@@ -31,17 +31,9 @@ Start the site, sign in as an administrator, and open any document that has been
 </Step>
 <Step title="Let other developers in">
 
-Only administrators see the tab until you name other user groups:
+Administrators see the tab. To give it to another group, open it under **Users**, **User groups**, and turn on **View Delivery API output** in its default permissions.
 
-```json appsettings.json
-{
-  "DeliveryApiInspector": {
-    "UserGroups": ["admin", "developers"]
-  }
-}
-```
-
-See [Access](/access) for what a user can see once they have the tab.
+See [Access](/access) for permissions on part of the tree, and for naming groups in appsettings instead.
 
 </Step>
 </Steps>

@@ -1,7 +1,7 @@
-import { UMB_DOCUMENT_WORKSPACE_ALIAS } from "@umbraco-cms/backoffice/document";
+import { UMB_DOCUMENT_ENTITY_TYPE, UMB_DOCUMENT_WORKSPACE_ALIAS } from "@umbraco-cms/backoffice/document";
 import { UMB_MEDIA_WORKSPACE_ALIAS } from "@umbraco-cms/backoffice/media";
 import { UMB_WORKSPACE_CONDITION_ALIAS, UMB_WORKSPACE_ENTITY_IS_NEW_CONDITION_ALIAS } from "@umbraco-cms/backoffice/workspace";
-import { ACCESS_CONDITION_ALIAS } from "./constants.js";
+import { ACCESS_CONDITION_ALIAS, VIEW_PERMISSION } from "./constants.js";
 
 export const manifests = [
   {
@@ -9,6 +9,19 @@ export const manifests = [
     alias: "TheBuilder.DeliveryApiInspector.EntryPoint",
     name: "Delivery API Inspector Entry Point",
     js: () => import("./entrypoint.js"),
+  },
+  // A document permission on user groups, by default or for parts of the content tree. Media has no
+  // permissions per item, so the media tab follows a group's default.
+  {
+    type: "entityUserPermission",
+    alias: "TheBuilder.DeliveryApiInspector.UserPermission.Document.View",
+    name: "View Delivery API Output User Permission",
+    forEntityTypes: [UMB_DOCUMENT_ENTITY_TYPE],
+    meta: {
+      verbs: [VIEW_PERMISSION],
+      label: "View Delivery API output",
+      description: "Allow access to the API tab, with what the Delivery API returns for a Document",
+    },
   },
   {
     type: "condition",

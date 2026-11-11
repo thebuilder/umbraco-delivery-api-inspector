@@ -3,7 +3,7 @@
 // question (draft and published, each culture, with and without expand and fields) and compares
 // the two JSON documents. Run the sample first: dotnet run --project samples/TheBuilder.DeliveryApiInspector.Example
 import assert from "node:assert/strict";
-import { before, describe, it } from "node:test";
+import { after, before, describe, it } from "node:test";
 
 const site = process.env.SITE_URL ?? "http://localhost:5330";
 const apiKey = "example-local-preview-key";
@@ -143,5 +143,61 @@ describe("access", () => {
   it("answers a malformed expand the way the Delivery API does, with a 400", async () => {
     const { status } = await inspector(`/content/e0000000-0000-0000-0000-000000000001?expand=properties[`);
     assert.equal(status, 400);
+  });
+});
+
+// Access through Users > User groups. The sample names no groups in DeliveryApiInspector:UserGroups,
+// and its API user is an administrator, so the Administrators group's permission decides. These tests
+// change that group and put it back afterwards.
+describe("the View Delivery API output permission", () => {
+  const permission = "TheBuilder.DeliveryApiInspector.View";
+  const harbour = "e0000000-0000-0000-0000-000000000003";
+  const forest = "e0000000-0000-0000-0000-000000000004";
+  const managementApi = `${site}/umbraco/management/api/v1`;
+  let original;
+
+  const saveAdministrators = async (group) => {
+    const response = await fetch(`${managementApi}/user-group/${group.id}`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(group),
+    });
+    assert.equal(response.status, 200, `Saving the Administrators group failed: ${await response.text()}`);
+  };
+
+  before(async () => {
+    const { body } = await json(`${managementApi}/user-group?take=100`, { Authorization: `Bearer ${token}` });
+    original = body.items.find((group) => group.alias === "admin");
+  });
+
+  after(async () => {
+    if (original) await saveAdministrators(original);
+  });
+
+  it("is given to Administrators when the package is installed", () => {
+    assert.ok(original.fallbackPermissions.includes(permission));
+  });
+
+  it("closes the tab, and refuses every endpoint, for a user whose groups do not have it", async () => {
+    await saveAdministrators({ ...original, fallbackPermissions: original.fallbackPermissions.filter((verb) => verb !== permission) });
+    const { body: config } = await inspector("/config");
+    assert.equal(config.allowed, false);
+    assert.equal(config.media, false);
+    assert.equal((await inspector(`/content/${harbour}`)).status, 403);
+    assert.equal((await inspector("/media/e1000000-0000-0000-0000-000000000001")).status, 403);
+  });
+
+  it("opens the tab only on the documents it is set on, under the permissions for part of the tree", async () => {
+    await saveAdministrators({
+      ...original,
+      fallbackPermissions: original.fallbackPermissions.filter((verb) => verb !== permission),
+      permissions: [{ $type: "DocumentPermissionPresentationModel", document: { id: harbour }, verbs: ["Umb.Document.Read", permission] }],
+    });
+    assert.deepEqual((await inspector(`/access/content/${harbour}`)).body, { allowed: true });
+    assert.equal((await inspector(`/content/${harbour}`)).status, 200);
+    assert.deepEqual((await inspector(`/access/content/${forest}`)).body, { allowed: false });
+    assert.equal((await inspector(`/content/${forest}`)).status, 403);
+    // Media has no permissions per item, so a permission on a document does not open the media tab.
+    assert.equal((await inspector("/config")).body.media, false);
   });
 });
