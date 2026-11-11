@@ -6,7 +6,9 @@
     "build": "tsc && vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "watch": "tsc && vite build --watch"
+    "watch": "tsc && vite build --watch",
+    "build:demo": "vite build --config vite.demo.config.ts",
+    "demo:capture": "node demo/capture.mjs"
   },
   "devDependencies": {
     "@umbraco-cms/backoffice": "17.8.1",

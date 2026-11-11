@@ -18,3 +18,5 @@ src/TheBuilder.DeliveryApiInspector/wwwroot/App_Plugins/TheBuilder.DeliveryApiIn
 apps/docs/.blume/
 apps/docs/public/og/
 apps/docs/public/opengraph-image.png
+# The landing page demo, built from the backoffice client on every docs build.
+apps/docs/public/demo/inspector-demo.js

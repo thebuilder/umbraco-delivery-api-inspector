@@ -1,0 +1,516 @@
+{
+  "id": "e0000000-0000-0000-0000-000000000003",
+  "config": {
+    "allowed": true,
+    "media": true,
+    "documentTypes": null,
+    "mediaTypes": null,
+    "deliveryApi": {
+      "installed": true,
+      "enabled": true,
+      "publicAccess": true,
+      "mediaEnabled": true,
+      "mediaPublicAccess": true,
+      "hasApiKey": true,
+      "path": "/umbraco/delivery/api/v2"
+    }
+  },
+  "responses": {
+    "draft:none": {
+      "data": {
+        "contentType": "article",
+        "name": "Harbour mornings",
+        "createDate": "2026-11-10T10:10:40.7455085Z",
+        "updateDate": "2026-11-10T10:10:51.6786593Z",
+        "route": {
+          "path": "/articles/harbour-mornings/",
+          "queryString": null,
+          "startItem": {
+            "id": "e0000000-0000-0000-0000-000000000001",
+            "path": "home"
+          }
+        },
+        "id": "e0000000-0000-0000-0000-000000000003",
+        "properties": {
+          "title": "Harbour mornings",
+          "summary": "Coffee by the water before the ferries start. (Edited, not yet published.)",
+          "image": [
+            {
+              "focalPoint": null,
+              "crops": [],
+              "id": "e1000000-0000-0000-0000-000000000001",
+              "name": "Harbour",
+              "mediaType": "Image",
+              "url": "/media/r5femv1j/harbour.png",
+              "extension": "png",
+              "width": 1200,
+              "height": 675,
+              "bytes": 146917,
+              "properties": {}
+            }
+          ],
+          "body": {
+            "markup": "<p>The first ferry leaves at six. By then the fishermen have been out for hours.</p><p>If you prefer trees to water, read <a href=\"/articles/forest-walks/\" title=\"Forest walks\" data-destination-id=\"e0000000-0000-0000-0000-000000000004\" data-destination-type=\"article\" data-start-item-path=\"home\" data-start-item-id=\"e0000000-0000-0000-0000-000000000001\" data-link-type=\"Content\">Forest walks</a>.</p>",
+            "blocks": []
+          },
+          "related": [
+            {
+              "contentType": "article",
+              "name": "Forest walks",
+              "createDate": "2026-11-10T10:10:40.8947674Z",
+              "updateDate": "2026-11-10T10:10:40.984164Z",
+              "route": {
+                "path": "/articles/forest-walks/",
+                "queryString": null,
+                "startItem": {
+                  "id": "e0000000-0000-0000-0000-000000000001",
+                  "path": "home"
+                }
+              },
+              "id": "e0000000-0000-0000-0000-000000000004",
+              "properties": {}
+            },
+            {
+              "contentType": "article",
+              "name": "Evenings at dusk",
+              "createDate": "2026-11-10T10:10:41.053507Z",
+              "updateDate": "2026-11-10T10:10:41.1011351Z",
+              "route": {
+                "path": "/articles/evenings-at-dusk/",
+                "queryString": null,
+                "startItem": {
+                  "id": "e0000000-0000-0000-0000-000000000001",
+                  "path": "home"
+                }
+              },
+              "id": "e0000000-0000-0000-0000-000000000005",
+              "properties": {}
+            }
+          ]
+        },
+        "cultures": {}
+      },
+      "buildMs": 1.3
+    },
+    "draft:all": {
+      "data": {
+        "contentType": "article",
+        "name": "Harbour mornings",
+        "createDate": "2026-11-10T10:10:40.7455085Z",
+        "updateDate": "2026-11-10T10:10:51.6786593Z",
+        "route": {
+          "path": "/articles/harbour-mornings/",
+          "queryString": null,
+          "startItem": {
+            "id": "e0000000-0000-0000-0000-000000000001",
+            "path": "home"
+          }
+        },
+        "id": "e0000000-0000-0000-0000-000000000003",
+        "properties": {
+          "title": "Harbour mornings",
+          "summary": "Coffee by the water before the ferries start. (Edited, not yet published.)",
+          "image": [
+            {
+              "focalPoint": null,
+              "crops": [],
+              "id": "e1000000-0000-0000-0000-000000000001",
+              "name": "Harbour",
+              "mediaType": "Image",
+              "url": "/media/r5femv1j/harbour.png",
+              "extension": "png",
+              "width": 1200,
+              "height": 675,
+              "bytes": 146917,
+              "properties": {}
+            }
+          ],
+          "body": {
+            "markup": "<p>The first ferry leaves at six. By then the fishermen have been out for hours.</p><p>If you prefer trees to water, read <a href=\"/articles/forest-walks/\" title=\"Forest walks\" data-destination-id=\"e0000000-0000-0000-0000-000000000004\" data-destination-type=\"article\" data-start-item-path=\"home\" data-start-item-id=\"e0000000-0000-0000-0000-000000000001\" data-link-type=\"Content\">Forest walks</a>.</p>",
+            "blocks": []
+          },
+          "related": [
+            {
+              "contentType": "article",
+              "name": "Forest walks",
+              "createDate": "2026-11-10T10:10:40.8947674Z",
+              "updateDate": "2026-11-10T10:10:40.984164Z",
+              "route": {
+                "path": "/articles/forest-walks/",
+                "queryString": null,
+                "startItem": {
+                  "id": "e0000000-0000-0000-0000-000000000001",
+                  "path": "home"
+                }
+              },
+              "id": "e0000000-0000-0000-0000-000000000004",
+              "properties": {
+                "title": "Forest walks",
+                "summary": "Three routes north of the city, all under two hours.",
+                "image": [
+                  {
+                    "focalPoint": null,
+                    "crops": [],
+                    "id": "e1000000-0000-0000-0000-000000000002",
+                    "name": "Forest",
+                    "mediaType": "Image",
+                    "url": "/media/r5femv1j/forest.png",
+                    "extension": "png",
+                    "width": 1200,
+                    "height": 675,
+                    "bytes": 33195,
+                    "properties": {}
+                  }
+                ],
+                "body": {
+                  "markup": "<p>Pick the short loop if it has rained; the long one floods by the lake.</p>",
+                  "blocks": []
+                },
+                "related": [
+                  {
+                    "contentType": "article",
+                    "name": "Harbour mornings",
+                    "createDate": "2026-11-10T10:10:40.7455085Z",
+                    "updateDate": "2026-11-10T10:10:51.6786593Z",
+                    "route": {
+                      "path": "/articles/harbour-mornings/",
+                      "queryString": null,
+                      "startItem": {
+                        "id": "e0000000-0000-0000-0000-000000000001",
+                        "path": "home"
+                      }
+                    },
+                    "id": "e0000000-0000-0000-0000-000000000003",
+                    "properties": {}
+                  }
+                ]
+              }
+            },
+            {
+              "contentType": "article",
+              "name": "Evenings at dusk",
+              "createDate": "2026-11-10T10:10:41.053507Z",
+              "updateDate": "2026-11-10T10:10:41.1011351Z",
+              "route": {
+                "path": "/articles/evenings-at-dusk/",
+                "queryString": null,
+                "startItem": {
+                  "id": "e0000000-0000-0000-0000-000000000001",
+                  "path": "home"
+                }
+              },
+              "id": "e0000000-0000-0000-0000-000000000005",
+              "properties": {
+                "title": "Evenings at dusk",
+                "summary": "Where to sit when the sun goes down.",
+                "image": [
+                  {
+                    "focalPoint": null,
+                    "crops": [],
+                    "id": "e1000000-0000-0000-0000-000000000003",
+                    "name": "Dusk",
+                    "mediaType": "Image",
+                    "url": "/media/r5femv1j/dusk.png",
+                    "extension": "png",
+                    "width": 1200,
+                    "height": 675,
+                    "bytes": 47458,
+                    "properties": {}
+                  }
+                ],
+                "body": {
+                  "markup": "<p>Start at the harbour (see <a href=\"/articles/harbour-mornings/\" title=\"Harbour mornings\" data-destination-id=\"e0000000-0000-0000-0000-000000000003\" data-destination-type=\"article\" data-start-item-path=\"home\" data-start-item-id=\"e0000000-0000-0000-0000-000000000001\" data-link-type=\"Content\">Harbour mornings</a>) and walk west.</p>",
+                  "blocks": []
+                },
+                "related": [
+                  {
+                    "contentType": "article",
+                    "name": "Harbour mornings",
+                    "createDate": "2026-11-10T10:10:40.7455085Z",
+                    "updateDate": "2026-11-10T10:10:51.6786593Z",
+                    "route": {
+                      "path": "/articles/harbour-mornings/",
+                      "queryString": null,
+                      "startItem": {
+                        "id": "e0000000-0000-0000-0000-000000000001",
+                        "path": "home"
+                      }
+                    },
+                    "id": "e0000000-0000-0000-0000-000000000003",
+                    "properties": {}
+                  },
+                  {
+                    "contentType": "article",
+                    "name": "Forest walks",
+                    "createDate": "2026-11-10T10:10:40.8947674Z",
+                    "updateDate": "2026-11-10T10:10:40.984164Z",
+                    "route": {
+                      "path": "/articles/forest-walks/",
+                      "queryString": null,
+                      "startItem": {
+                        "id": "e0000000-0000-0000-0000-000000000001",
+                        "path": "home"
+                      }
+                    },
+                    "id": "e0000000-0000-0000-0000-000000000004",
+                    "properties": {}
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "cultures": {}
+      },
+      "buildMs": 1.8
+    },
+    "published:none": {
+      "data": {
+        "contentType": "article",
+        "name": "Harbour mornings",
+        "createDate": "2026-11-10T10:10:40.7455085Z",
+        "updateDate": "2026-11-10T10:10:40.808944Z",
+        "route": {
+          "path": "/articles/harbour-mornings/",
+          "queryString": null,
+          "startItem": {
+            "id": "e0000000-0000-0000-0000-000000000001",
+            "path": "home"
+          }
+        },
+        "id": "e0000000-0000-0000-0000-000000000003",
+        "properties": {
+          "title": "Harbour mornings",
+          "summary": "What the harbour looks like before the city wakes up.",
+          "image": [
+            {
+              "focalPoint": null,
+              "crops": [],
+              "id": "e1000000-0000-0000-0000-000000000001",
+              "name": "Harbour",
+              "mediaType": "Image",
+              "url": "/media/r5femv1j/harbour.png",
+              "extension": "png",
+              "width": 1200,
+              "height": 675,
+              "bytes": 146917,
+              "properties": {}
+            }
+          ],
+          "body": {
+            "markup": "<p>The first ferry leaves at six. By then the fishermen have been out for hours.</p><p>If you prefer trees to water, read <a href=\"/articles/forest-walks/\" title=\"Forest walks\" data-destination-id=\"e0000000-0000-0000-0000-000000000004\" data-destination-type=\"article\" data-start-item-path=\"home\" data-start-item-id=\"e0000000-0000-0000-0000-000000000001\" data-link-type=\"Content\">Forest walks</a>.</p>",
+            "blocks": []
+          },
+          "related": [
+            {
+              "contentType": "article",
+              "name": "Forest walks",
+              "createDate": "2026-11-10T10:10:40.8947674Z",
+              "updateDate": "2026-11-10T10:10:40.984164Z",
+              "route": {
+                "path": "/articles/forest-walks/",
+                "queryString": null,
+                "startItem": {
+                  "id": "e0000000-0000-0000-0000-000000000001",
+                  "path": "home"
+                }
+              },
+              "id": "e0000000-0000-0000-0000-000000000004",
+              "properties": {}
+            },
+            {
+              "contentType": "article",
+              "name": "Evenings at dusk",
+              "createDate": "2026-11-10T10:10:41.053507Z",
+              "updateDate": "2026-11-10T10:10:41.1011351Z",
+              "route": {
+                "path": "/articles/evenings-at-dusk/",
+                "queryString": null,
+                "startItem": {
+                  "id": "e0000000-0000-0000-0000-000000000001",
+                  "path": "home"
+                }
+              },
+              "id": "e0000000-0000-0000-0000-000000000005",
+              "properties": {}
+            }
+          ]
+        },
+        "cultures": {}
+      },
+      "buildMs": 0.5
+    },
+    "published:all": {
+      "data": {
+        "contentType": "article",
+        "name": "Harbour mornings",
+        "createDate": "2026-11-10T10:10:40.7455085Z",
+        "updateDate": "2026-11-10T10:10:40.808944Z",
+        "route": {
+          "path": "/articles/harbour-mornings/",
+          "queryString": null,
+          "startItem": {
+            "id": "e0000000-0000-0000-0000-000000000001",
+            "path": "home"
+          }
+        },
+        "id": "e0000000-0000-0000-0000-000000000003",
+        "properties": {
+          "title": "Harbour mornings",
+          "summary": "What the harbour looks like before the city wakes up.",
+          "image": [
+            {
+              "focalPoint": null,
+              "crops": [],
+              "id": "e1000000-0000-0000-0000-000000000001",
+              "name": "Harbour",
+              "mediaType": "Image",
+              "url": "/media/r5femv1j/harbour.png",
+              "extension": "png",
+              "width": 1200,
+              "height": 675,
+              "bytes": 146917,
+              "properties": {}
+            }
+          ],
+          "body": {
+            "markup": "<p>The first ferry leaves at six. By then the fishermen have been out for hours.</p><p>If you prefer trees to water, read <a href=\"/articles/forest-walks/\" title=\"Forest walks\" data-destination-id=\"e0000000-0000-0000-0000-000000000004\" data-destination-type=\"article\" data-start-item-path=\"home\" data-start-item-id=\"e0000000-0000-0000-0000-000000000001\" data-link-type=\"Content\">Forest walks</a>.</p>",
+            "blocks": []
+          },
+          "related": [
+            {
+              "contentType": "article",
+              "name": "Forest walks",
+              "createDate": "2026-11-10T10:10:40.8947674Z",
+              "updateDate": "2026-11-10T10:10:40.984164Z",
+              "route": {
+                "path": "/articles/forest-walks/",
+                "queryString": null,
+                "startItem": {
+                  "id": "e0000000-0000-0000-0000-000000000001",
+                  "path": "home"
+                }
+              },
+              "id": "e0000000-0000-0000-0000-000000000004",
+              "properties": {
+                "title": "Forest walks",
+                "summary": "Three routes north of the city, all under two hours.",
+                "image": [
+                  {
+                    "focalPoint": null,
+                    "crops": [],
+                    "id": "e1000000-0000-0000-0000-000000000002",
+                    "name": "Forest",
+                    "mediaType": "Image",
+                    "url": "/media/r5femv1j/forest.png",
+                    "extension": "png",
+                    "width": 1200,
+                    "height": 675,
+                    "bytes": 33195,
+                    "properties": {}
+                  }
+                ],
+                "body": {
+                  "markup": "<p>Pick the short loop if it has rained; the long one floods by the lake.</p>",
+                  "blocks": []
+                },
+                "related": [
+                  {
+                    "contentType": "article",
+                    "name": "Harbour mornings",
+                    "createDate": "2026-11-10T10:10:40.7455085Z",
+                    "updateDate": "2026-11-10T10:10:40.808944Z",
+                    "route": {
+                      "path": "/articles/harbour-mornings/",
+                      "queryString": null,
+                      "startItem": {
+                        "id": "e0000000-0000-0000-0000-000000000001",
+                        "path": "home"
+                      }
+                    },
+                    "id": "e0000000-0000-0000-0000-000000000003",
+                    "properties": {}
+                  }
+                ]
+              }
+            },
+            {
+              "contentType": "article",
+              "name": "Evenings at dusk",
+              "createDate": "2026-11-10T10:10:41.053507Z",
+              "updateDate": "2026-11-10T10:10:41.1011351Z",
+              "route": {
+                "path": "/articles/evenings-at-dusk/",
+                "queryString": null,
+                "startItem": {
+                  "id": "e0000000-0000-0000-0000-000000000001",
+                  "path": "home"
+                }
+              },
+              "id": "e0000000-0000-0000-0000-000000000005",
+              "properties": {
+                "title": "Evenings at dusk",
+                "summary": "Where to sit when the sun goes down.",
+                "image": [
+                  {
+                    "focalPoint": null,
+                    "crops": [],
+                    "id": "e1000000-0000-0000-0000-000000000003",
+                    "name": "Dusk",
+                    "mediaType": "Image",
+                    "url": "/media/r5femv1j/dusk.png",
+                    "extension": "png",
+                    "width": 1200,
+                    "height": 675,
+                    "bytes": 47458,
+                    "properties": {}
+                  }
+                ],
+                "body": {
+                  "markup": "<p>Start at the harbour (see <a href=\"/articles/harbour-mornings/\" title=\"Harbour mornings\" data-destination-id=\"e0000000-0000-0000-0000-000000000003\" data-destination-type=\"article\" data-start-item-path=\"home\" data-start-item-id=\"e0000000-0000-0000-0000-000000000001\" data-link-type=\"Content\">Harbour mornings</a>) and walk west.</p>",
+                  "blocks": []
+                },
+                "related": [
+                  {
+                    "contentType": "article",
+                    "name": "Harbour mornings",
+                    "createDate": "2026-11-10T10:10:40.7455085Z",
+                    "updateDate": "2026-11-10T10:10:40.808944Z",
+                    "route": {
+                      "path": "/articles/harbour-mornings/",
+                      "queryString": null,
+                      "startItem": {
+                        "id": "e0000000-0000-0000-0000-000000000001",
+                        "path": "home"
+                      }
+                    },
+                    "id": "e0000000-0000-0000-0000-000000000003",
+                    "properties": {}
+                  },
+                  {
+                    "contentType": "article",
+                    "name": "Forest walks",
+                    "createDate": "2026-11-10T10:10:40.8947674Z",
+                    "updateDate": "2026-11-10T10:10:40.984164Z",
+                    "route": {
+                      "path": "/articles/forest-walks/",
+                      "queryString": null,
+                      "startItem": {
+                        "id": "e0000000-0000-0000-0000-000000000001",
+                        "path": "home"
+                      }
+                    },
+                    "id": "e0000000-0000-0000-0000-000000000004",
+                    "properties": {}
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "cultures": {}
+      },
+      "buildMs": 1.5
+    }
+  }
+}

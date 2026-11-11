@@ -22,7 +22,7 @@ const marketplaceUrl = inspectorPackage.links.marketplace;
 const features = [
   {
     title: "The real output",
-    body: "Built with the Delivery API's own builders, so the tab shows byte for byte what a frontend receives.",
+    body: "Built with the Delivery API's own builders, so the tab shows the same JSON a frontend receives.",
   },
   {
     title: "Draft first, with a switch",
@@ -68,8 +68,11 @@ const features = [
         <a class="button button--secondary" href={repoUrl} rel="noopener">View on GitHub</a>
       </Fragment>
       <InstallCommand slot="install" command={installCommand} />
-      <figure class="shell hero-shot reveal" style="--i: 6">
-        <img src="/screenshots/document.png" alt="The API tab on a document, with the request on one line above a collapsible tree of the response." width="1440" height="900" />
+      <figure class="shell hero-demo reveal" style="--i: 6">
+        <delivery-api-inspector-demo aria-label="A live demo of the API tab on an article"></delivery-api-inspector-demo>
+        <!-- The tab is laid out for the backoffice, which needs a wide screen, so phones get a picture of it. -->
+        <img class="hero-demo__still" src="/screenshots/document.png" alt="The API tab on a document, with the request on one line above a collapsible tree of the response." width="1440" height="900" loading="lazy" />
+        <figcaption>The real API tab, on an article from the sample site. Switch to Changes, expand the pickers, or search.</figcaption>
       </figure>
     </LandingHero>
 
@@ -116,6 +119,9 @@ const features = [
       currentPackageId={inspectorPackage.id}
     />
   </LandingRoot>
+
+  <!-- The demo is the package's own element, built by `pnpm --dir src/TheBuilder.DeliveryApiInspector/Client build:demo`. -->
+  <script is:inline type="module" src="/demo/inspector-demo.js"></script>
 
   <footer class="home-footer" slot="footer">
     <div class="shell home-footer__inner">

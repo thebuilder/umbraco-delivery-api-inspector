@@ -33,6 +33,7 @@ pnpm install && pnpm typecheck && pnpm test && pnpm build
 dotnet run --project samples/TheBuilder.DeliveryApiInspector.Example
 pnpm e2e                # against the running sample
 pnpm docs:screenshots   # retakes the docs screenshots from the running sample
+pnpm docs:demo          # recaptures the landing page demo's responses from the running sample
 ```
 
 ## Traps

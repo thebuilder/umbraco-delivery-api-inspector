@@ -9,6 +9,7 @@
     "e2e": "pnpm --dir tests/e2e test",
     "docs:dev": "pnpm --filter @thebuilder/delivery-api-inspector-docs dev",
     "docs:build": "pnpm --filter @thebuilder/delivery-api-inspector-docs build",
-    "docs:screenshots": "pnpm --filter @thebuilder/delivery-api-inspector-docs screenshots"
+    "docs:screenshots": "pnpm --filter @thebuilder/delivery-api-inspector-docs screenshots",
+    "docs:demo": "pnpm --dir src/TheBuilder.DeliveryApiInspector/Client demo:capture"
   }
 }

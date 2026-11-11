@@ -93,6 +93,15 @@
 .home .flow__copy > .text-link { display: inline-block; margin-top: .75rem; }
 
 /* Screenshots of the backoffice tab, framed like the code previews. */
-.home :where(.hero-shot, .shot) { margin: 0; min-width: 0; }
-.home .hero-shot { max-width: 65rem; margin: 2.75rem auto 0; }
+.home :where(.hero-shot, .hero-demo, .shot) { margin: 0; min-width: 0; }
+.home .hero-demo { max-width: 65rem; margin: 2.75rem auto 0; }
+/* The live API tab. Its frame keeps a fixed height, so the page does not jump while it loads or as the tree opens. */
+.home .hero-demo delivery-api-inspector-demo { display: block; --demo-height: min(600px, 78svh); min-height: var(--demo-height); border: 1px solid var(--line); border-radius: 13px; box-shadow: 0 1.875rem 3.75rem -1.5625rem color-mix(in oklab, var(--blume-accent) 30%, transparent), 0 .75rem 1.875rem -1.25rem rgb(0 0 0 / .35); }
+.home .hero-demo figcaption { margin-top: .9rem; color: var(--muted); font-size: .9rem; text-align: center; }
+.home .hero-demo__still { display: none; width: 100%; height: auto; border: 1px solid var(--line); border-radius: calc(var(--blume-radius) * 1.25); }
+@media (max-width: 47.5rem) {
+  .home .hero-demo delivery-api-inspector-demo { display: none; }
+  .home .hero-demo__still { display: block; }
+  .home .hero-demo figcaption { display: none; }
+}
 .home :where(.hero-shot, .shot) img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: calc(var(--blume-radius) * 1.25); box-shadow: 0 1.875rem 3.75rem -1.5625rem color-mix(in oklab, var(--blume-accent) 30%, transparent), 0 .75rem 1.875rem -1.25rem rgb(0 0 0 / .35); }

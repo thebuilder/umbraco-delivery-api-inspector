@@ -3,13 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "blume dev",
-    "build": "pnpm run generate:brand && pnpm run generate:og && blume build",
+    "dev": "pnpm run generate:demo && blume dev",
+    "build": "pnpm run generate:brand && pnpm run generate:og && pnpm run generate:demo && blume build",
     "check": "blume check",
     "generate:brand": "node scripts/generate-brand.mjs",
     "screenshots": "node scripts/screenshots.mjs",
     "generate:og": "umbraco-docs-og",
-    "check:og": "umbraco-docs-og --check"
+    "check:og": "umbraco-docs-og --check",
+    "generate:demo": "pnpm --dir ../../src/TheBuilder.DeliveryApiInspector/Client build:demo"
   },
   "dependencies": {
     "@thebuilder/umbraco-docs": "^1.7.0",
