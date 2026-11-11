@@ -24,9 +24,6 @@
 .home .button--primary:hover { background: color-mix(in oklab, var(--purple) 88%, black); color: var(--blume-accent-foreground); }
 /* The hero shows what a frontend sees: a response's keys, and the purge a publish sends. */
 .home .hero-code { max-width: 65rem; margin: 2.75rem auto 0; text-align: start; }
-.home .trust { padding-block: 1.75rem; border-bottom: 1px solid var(--line); color: var(--muted); text-align: center; }
-.home .trust p { margin: 0; }
-.home .trust strong { color: var(--ink); }
 
 .home .section { padding-block: 5rem; }
 .home .section-heading { max-width: 40rem; }

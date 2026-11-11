@@ -10,7 +10,7 @@
   "Category": "Developer Tools",
   "AlternateCategory": "Headless",
   "Title": "Delivery API Inspector",
-  "Description": "An API tab on every document and media item in the backoffice, showing exactly what the Delivery API returns for it.",
+  "Description": "An API tab on every document and media item in the backoffice, with the JSON the Delivery API returns for it.",
   "DocumentationUrl": "https://delivery-api-inspector.thebuilder.dk/",
   "IssueTrackerUrl": "https://github.com/thebuilder/umbraco-delivery-api-inspector/issues",
   "LicenseTypes": [

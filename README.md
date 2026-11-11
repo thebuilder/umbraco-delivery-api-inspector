@@ -6,7 +6,7 @@
 
 <p align="center">
   An API tab on every document and media item in the Umbraco backoffice,<br />
-  showing exactly what the Delivery API returns for it.
+  with the JSON the Delivery API returns for it.
 </p>
 
 [![NuGet version](https://img.shields.io/nuget/vpre/TheBuilder.DeliveryApiInspector)](https://www.nuget.org/packages/TheBuilder.DeliveryApiInspector)
@@ -15,17 +15,16 @@
 
 ![The API tab on a document, with the request on one line above a collapsible tree of the response](https://raw.githubusercontent.com/thebuilder/umbraco-delivery-api-inspector/refs/heads/main/apps/docs/content/screenshots/document.png)
 
-The tab builds the response with the Delivery API's own builders, so it shows the same JSON a
-frontend receives, without Swagger, an API client or a copied API key.
+The tab builds the response with the Delivery API's own builders, so it shows the JSON a frontend
+receives. You don't need an API client or the site's API key.
 
-- **Draft first, with a switch.** See the draft you are editing, flip to what is published, or see
-  exactly what publishing the draft would change.
-- **Made for reading.** A tree you can search and filter, open levels at a click, and `expand` and
-  `fields` without typing the syntax, laid out like the JSON in a code editor.
-- **Aware of Umbraco.** Blocks and pickers show their content type, which links to the type. Media
-  URLs show a thumbnail on hover, and a GUID opens its document or media item.
-- **Ready to copy.** Copy the request as a URL, a curl command or a `fetch` call, the whole response
-  as JSON, or any one part of it from its line.
+Draft is the default view. Published shows what frontends get today, and Changes shows what
+publishing the draft would change.
+
+The response is a tree you can search and filter, open to a set depth, and request with `expand` and
+`fields` from a menu. Blocks and pickers show their content type, media URLs show a thumbnail on
+hover, and a GUID opens its document or media item. The request copies as a URL, a curl command or a
+`fetch` call, and the response, or any part of it, copies as JSON.
 
 The package is a preview. It supports Umbraco 17.4 and later, Umbraco 18 included, on .NET 10.
 
