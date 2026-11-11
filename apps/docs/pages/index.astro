@@ -1,0 +1,140 @@
+---
+// @ts-nocheck - Blume's React island types flag valid Astro attributes.
+import PageLayout from "blume/components/layout/PageLayout.astro";
+import data from "blume:data";
+import { loadUmbracoPackages } from "@thebuilder/umbraco-docs";
+import { EcosystemSection, InstallCommand, LandingHero, LandingRoot } from "@thebuilder/umbraco-docs/astro";
+import HeroParticles from "@thebuilder/umbraco-docs/components/HeroParticles";
+
+import "./_home/home.css";
+
+import { inspectorPackage } from "../umbraco-package";
+
+// The other packages come from the hub at umbraco.thebuilder.dk, so this list never needs editing here.
+const ecosystemPackages = await loadUmbracoPackages();
+
+const { config } = data;
+const installCommand = "dotnet add package TheBuilder.DeliveryApiInspector --prerelease";
+const repoUrl = inspectorPackage.links.github;
+const nugetUrl = inspectorPackage.links.nuget;
+const marketplaceUrl = inspectorPackage.links.marketplace;
+
+const features = [
+  {
+    title: "The real output",
+    body: "Built with the Delivery API's own builders, so the tab shows the same JSON a frontend receives.",
+  },
+  {
+    title: "Draft first, with a switch",
+    body: "See the draft you are editing, flip to what is published, or see exactly what a publish would change.",
+  },
+  {
+    title: "Made for reading",
+    body: "Search that filters, levels at a click, expand and fields without the syntax, and blocks labelled with their content type.",
+  },
+];
+---
+
+<PageLayout
+  site={{ title: config.title, description: config.description }}
+  logo={config.logo}
+  favicon={config.favicon}
+  banner={config.banner}
+  analytics={config.analytics}
+  navigation={data.navigation}
+  fontCssVars={data.fontCssVars}
+  themeMode={config.theme.mode}
+  searchEnabled={config.search.enabled}
+  siteUrl={config.site}
+  ogEnabled={config.og.enabled}
+  ogImage="/og/index.png"
+  page={{
+    title: "Delivery API Inspector for Umbraco",
+    description: config.description,
+    route: "/",
+  }}
+>
+  <LandingRoot class="home">
+    <LandingHero
+      layout="split"
+      title="See what the Delivery API returns,"
+      accent="right where you edit."
+      description="An API tab on every document and media item in the backoffice, with the exact JSON a frontend gets for it."
+      compatibility="Umbraco CMS 17.4 or later · .NET 10"
+    >
+      <HeroParticles slot="background" logo="/logo-mark.svg" />
+      <Fragment slot="actions">
+        <a class="button button--primary" href="/quickstart">Get started</a>
+        <a class="button button--secondary" href={repoUrl} rel="noopener">View on GitHub</a>
+      </Fragment>
+      <InstallCommand slot="install" command={installCommand} />
+      <figure class="shell hero-demo reveal" style="--i: 6">
+        <delivery-api-inspector-demo aria-label="A live demo of the API tab on an article"></delivery-api-inspector-demo>
+        <!-- The tab is laid out for the backoffice, which needs a wide screen, so phones get a picture of it. -->
+        <img class="hero-demo__still" src="/screenshots/document.png" alt="The API tab on a document, with the request on one line above a collapsible tree of the response." width="1440" height="900" loading="lazy" />
+        <figcaption>The real API tab, on an article from the sample site. Switch to Changes, expand the pickers, or search.</figcaption>
+      </figure>
+    </LandingHero>
+
+    <section class="shell trust reveal">
+      <p><strong>No Swagger, no API client, no copied keys.</strong> Open the document, click API, and read the response.</p>
+    </section>
+
+    <section class="shell section" aria-labelledby="features-title">
+      <div class="section-heading reveal">
+        <span class="rule" aria-hidden="true"></span>
+        <h2 id="features-title">Built for headless developers</h2>
+        <p>For anyone who has opened a terminal to curl the Delivery API, just to see one property.</p>
+      </div>
+      <div class="feature-grid">
+        {features.map((feature, index) => (
+          <article class="feature-card reveal" style={`--i: ${index + 1}`}>
+            <h3>{feature.title}</h3>
+            <p>{feature.body}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="shell flow" aria-labelledby="flow-title">
+      <div class="flow__copy reveal">
+        <span class="rule" aria-hidden="true"></span>
+        <h2 id="flow-title">What publishing would change</h2>
+        <p>The Changes view compares the draft with the published version, and opens every branch that differs.</p>
+        <a class="text-link" href="/versions-and-changes">Versions and changes <span aria-hidden="true">→</span></a>
+      </div>
+      <figure class="shot reveal" style="--i: 1">
+        <img src="/screenshots/changes.png" alt="The Changes view marks a changed summary and the values that publishing would add or remove." width="1440" height="900" loading="lazy" />
+      </figure>
+    </section>
+
+    <section class="shell closing reveal">
+      <h2>Inspect your first document</h2>
+      <p>Install the package, open a document, and click API.</p>
+      <a class="button button--primary" href="/quickstart">Read the quickstart</a>
+    </section>
+
+    <EcosystemSection
+      packages={ecosystemPackages}
+      currentPackageId={inspectorPackage.id}
+    />
+  </LandingRoot>
+
+  <!-- The demo is the package's own element, built by `pnpm --dir src/TheBuilder.DeliveryApiInspector/Client build:demo`. -->
+  <script is:inline type="module" src="/demo/inspector-demo.js"></script>
+
+  <footer class="home-footer" slot="footer">
+    <div class="shell home-footer__inner">
+      <div>
+        <strong>Delivery API Inspector</strong>
+        <span>MIT licensed · built by <a href="https://github.com/thebuilder" rel="noopener">thebuilder</a></span>
+      </div>
+      <nav aria-label="Footer">
+        <a href="/overview">Docs</a>
+        <a href={repoUrl} rel="noopener">GitHub</a>
+        <a href={nugetUrl} rel="noopener">NuGet</a>
+        <a href={marketplaceUrl} rel="noopener">Marketplace</a>
+      </nav>
+    </div>
+  </footer>
+</PageLayout>

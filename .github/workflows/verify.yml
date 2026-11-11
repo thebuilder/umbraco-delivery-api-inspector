@@ -1,0 +1,329 @@
+name: Verify package
+
+# Everything a change has to pass. CI runs it on every push and pull request with the project
+# file's version. The publish workflow runs it with the version from the release tag, and
+# publishes the package it uploads.
+on:
+  workflow_call:
+    inputs:
+      package-version:
+        description: The version for the NuGet package. Empty uses the project file's.
+        type: string
+        default: ""
+      release-tag:
+        description: The GitHub Release tag the NuGet release notes link to.
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  # The package across the Umbraco range: the lowest release it allows and the newest of each major,
+  # so a dependency floor or an API that moved shows up before a site meets it. Only the package
+  # project, because the sample pins its own Umbraco release (SampleUmbracoVersion) and would
+  # conflict with an overridden range.
+  dotnet:
+    name: .NET (Umbraco ${{ matrix.umbraco-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        umbraco-version:
+          - 17.4.0
+          - 17.*
+          - 18.*
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ matrix.umbraco-version }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-${{ matrix.umbraco-version }}-
+
+      # TreatWarningsAsErrors is on for every project, so this is the warning gate too.
+      - name: Build
+        env:
+          UMBRACO_VERSION: ${{ matrix.umbraco-version }}
+        run: dotnet build src/TheBuilder.DeliveryApiInspector -c Release "-p:UmbracoVersion=$UMBRACO_VERSION"
+
+  # The documentation site, so a page that does not build fails the change that broke it rather
+  # than the next deploy. The build also draws the Open Graph cards and the favicon from the logo.
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build documentation
+        run: pnpm docs:build
+
+  # The backoffice client, which only `dotnet pack` builds, so a type error or a failing unit test
+  # shows up here rather than at release.
+  client:
+    name: Backoffice client
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Reads the pnpm version from the root package.json's packageManager field, so CI and the
+      # csproj's `corepack pnpm` cannot end up on different majors.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+  # Whether the change touches anything the end-to-end job runs, so a change to the documentation
+  # alone does not start Umbraco twice. Lists what the job does not need rather than what it does, so
+  # a file nobody thought of still runs it. A skipped job counts as passed, so it can stay a required
+  # check.
+  changes:
+    name: Changes
+    if: inputs.package-version == ''
+    runs-on: ubuntu-latest
+    outputs:
+      e2e: ${{ steps.e2e.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the changed files
+        id: e2e
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [[ -z "$BASE" || "$BASE" =~ ^0+$ ]] || ! git fetch --depth=1 origin "$BASE"; then
+            echo "No base to compare with, so the end-to-end job runs."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed="$(git diff --name-only "$BASE" HEAD)"
+          relevant="$(grep -Ev '^apps/docs/|\.md$|^LICENSE$|^umbraco-marketplace\.json$' <<< "$changed" || true)"
+          if [[ -n "$relevant" ]]; then
+            echo "Changes the end-to-end job covers:"
+            echo "$relevant"
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Only documentation changed, so the end-to-end job is skipped."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # The sample site with a fresh SQLite database on each major, and `pnpm e2e` comparing the
+  # inspector's output with the public Delivery API for every seeded document and media item.
+  e2e:
+    name: End to end (Umbraco ${{ matrix.umbraco }})
+    needs: changes
+    if: needs.changes.outputs.e2e == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        umbraco:
+          - 17.8.1
+          - 18.3.1
+    env:
+      SITE_URL: http://localhost:5330
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-sample-${{ matrix.umbraco }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-sample-${{ matrix.umbraco }}-
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build the Umbraco sample
+        env:
+          UMBRACO_VERSION: ${{ matrix.umbraco }}
+        run: dotnet build samples/TheBuilder.DeliveryApiInspector.Example -c Release "-p:SampleUmbracoVersion=$UMBRACO_VERSION"
+
+      # It installs itself into a new SQLite database and seeds the content on the first start.
+      - name: Start Umbraco
+        working-directory: samples/TheBuilder.DeliveryApiInspector.Example
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: http://localhost:5330
+        run: |
+          nohup dotnet bin/Release/net10.0/TheBuilder.DeliveryApiInspector.Example.dll > "$RUNNER_TEMP/umbraco.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/umbraco.pid"
+
+      # The seeder logs when it is done; its last step saves an unpublished change on Harbour mornings.
+      - name: Wait for the seeded site
+        timeout-minutes: 4
+        run: |
+          deadline=$((SECONDS + 200))
+          while (( SECONDS < deadline )); do
+            if ! kill -0 "$(cat "$RUNNER_TEMP/umbraco.pid")" 2>/dev/null; then
+              echo "Umbraco stopped." >&2
+              exit 1
+            fi
+            if grep -q "Seeded the rest of the Delivery API Inspector example site" "$RUNNER_TEMP/umbraco.log"; then
+              echo "Seeded after ${SECONDS}s."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Umbraco was not seeded within 200 seconds." >&2
+          exit 1
+
+      - name: End to end
+        timeout-minutes: 8
+        run: pnpm e2e
+
+      - name: Logs
+        if: failure()
+        run: cat "$RUNNER_TEMP/umbraco.log" || true
+
+  package:
+    name: Solution and package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The backoffice bundle is not committed. `dotnet pack` builds it with `corepack pnpm build`,
+      # then refuses to pack if the manifest or the entry point is missing: a package without them
+      # installs into Umbraco and silently has no backoffice.
+      - name: Enable corepack
+        run: corepack enable
+
+      - run: corepack pnpm install --frozen-lockfile
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-default-${{ hashFiles('Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-default-
+
+      - name: Build solution
+        run: dotnet build TheBuilder.DeliveryApiInspector.slnx -c Release
+
+      # A release passes its tag's version. Any other run packs the project file's version with a
+      # suffix of its own, so the sample's restore below can only find the package this run built.
+      - name: Resolve version
+        env:
+          INPUT_VERSION: ${{ inputs.package-version }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          if [[ -n "$INPUT_VERSION" ]]; then
+            version="$INPUT_VERSION"
+          else
+            version="$(dotnet msbuild src/TheBuilder.DeliveryApiInspector/TheBuilder.DeliveryApiInspector.csproj -getProperty:Version)-ci.$RUN_NUMBER.$RUN_ATTEMPT"
+          fi
+          echo "PACKAGE_VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Pack
+        env:
+          RELEASE_TAG: ${{ inputs.release-tag }}
+          RELEASES_URL: ${{ github.server_url }}/${{ github.repository }}/releases/tag
+        run: |
+          arguments=(
+            src/TheBuilder.DeliveryApiInspector/TheBuilder.DeliveryApiInspector.csproj
+            -c Release
+            -o artifacts
+            "-p:Version=$PACKAGE_VERSION"
+            -p:ContinuousIntegrationBuild=true
+            -p:EnablePackageValidation=true
+          )
+          if [[ -n "$RELEASE_TAG" ]]; then
+            arguments+=("-p:PackageReleaseNotes=$RELEASES_URL/$RELEASE_TAG")
+          fi
+          dotnet pack "${arguments[@]}"
+
+      # What nuget.org and the Umbraco Marketplace need from the package, checked in the archive itself.
+      - name: Validate package
+        env:
+          RELEASE_TAG: ${{ inputs.release-tag }}
+          RELEASES_URL: ${{ github.server_url }}/${{ github.repository }}/releases/tag
+        run: |
+          package="artifacts/TheBuilder.DeliveryApiInspector.$PACKAGE_VERSION.nupkg"
+          unzip -t "$package"
+          entries="$(unzip -Z1 "$package")"
+          nuspec="$(unzip -p "$package" TheBuilder.DeliveryApiInspector.nuspec)"
+          manifest="staticwebassets/App_Plugins/TheBuilder.DeliveryApiInspector/umbraco-package.json"
+
+          for entry in README.md LICENSE icon.png lib/net10.0/TheBuilder.DeliveryApiInspector.dll lib/net10.0/TheBuilder.DeliveryApiInspector.xml \
+            "$manifest" staticwebassets/App_Plugins/TheBuilder.DeliveryApiInspector/delivery-api-inspector.js; do
+            grep -Fqx "$entry" <<< "$entries" || { echo "The package is missing $entry." >&2; exit 1; }
+          done
+          # Umbraco reads the version from the manifest, so it has to be the package's.
+          test "$(unzip -p "$package" "$manifest" | jq -r '.version')" = "$PACKAGE_VERSION"
+          grep -Fq "<version>$PACKAGE_VERSION</version>" <<< "$nuspec"
+          # The Marketplace lists packages from nuget.org by this tag.
+          grep -Fq "umbraco-marketplace" <<< "$nuspec"
+          # Every Umbraco dependency carries the range Directory.Packages.props declares.
+          range="$(dotnet msbuild src/TheBuilder.DeliveryApiInspector/TheBuilder.DeliveryApiInspector.csproj -getProperty:UmbracoVersion)"
+          range="${range/,/, }"
+          for dependency in Umbraco.Cms.Api.Delivery Umbraco.Cms.Api.Management; do
+            grep -Fq "<dependency id=\"$dependency\" version=\"$range\"" <<< "$nuspec" \
+              || { echo "$dependency does not depend on $range." >&2; exit 1; }
+          done
+          if [[ -n "$RELEASE_TAG" ]]; then
+            grep -Fq "<releaseNotes>$RELEASES_URL/$RELEASE_TAG</releaseNotes>" <<< "$nuspec"
+          fi
+
+      # The sample site restored from the packed file instead of the project, which is what an
+      # installer does: it catches a dependency nuget.org does not have, which packing does not.
+      - name: Build sample from the package
+        run: |
+          rm -rf ~/.nuget/packages/thebuilder.deliveryapiinspector
+          dotnet build samples/TheBuilder.DeliveryApiInspector.Example -c Release "-p:InspectorPackageVersion=$PACKAGE_VERSION"
+
+      # The publish workflow pushes this exact file, so what is published is what was checked.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TheBuilder.DeliveryApiInspector-package
+          path: artifacts/*.nupkg
+          if-no-files-found: error

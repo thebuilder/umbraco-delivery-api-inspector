@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!-- An Umbraco site with seeded content (blocks, a block grid, pickers, images, two languages) to
+       try the package on and run the end-to-end checks against. See ../README.md. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <UserSecretsId>TheBuilder.DeliveryApiInspector.Example</UserSecretsId>
+    <IsPackable>false</IsPackable>
+    <BuildInParallel>false</BuildInParallel>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Umbraco.Cms" />
+    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" />
+    <!-- Lift Umbraco's vulnerable transitive versions; see Directory.Packages.props. -->
+    <PackageReference Include="MessagePack" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
+  </ItemGroup>
+  <!-- The package, installed through its composer. By default the project; to test the packed
+       .nupkg instead, the artifact that gets published, pass its version. It is restored from
+       ../../artifacts, or from InspectorPackageSource. -->
+  <ItemGroup Condition="'$(InspectorPackageVersion)' == ''">
+    <ProjectReference Include="../../src/TheBuilder.DeliveryApiInspector/TheBuilder.DeliveryApiInspector.csproj" />
+  </ItemGroup>
+  <PropertyGroup Condition="'$(InspectorPackageVersion)' != ''">
+    <InspectorPackageSource Condition="'$(InspectorPackageSource)' == ''">$(MSBuildThisFileDirectory)../../artifacts</InspectorPackageSource>
+    <RestoreAdditionalProjectSources>$(RestoreAdditionalProjectSources);$(InspectorPackageSource)</RestoreAdditionalProjectSources>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(InspectorPackageVersion)' != ''">
+    <PackageReference Include="TheBuilder.DeliveryApiInspector" VersionOverride="$(InspectorPackageVersion)" />
+  </ItemGroup>
+</Project>

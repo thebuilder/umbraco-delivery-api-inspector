@@ -1,0 +1,28 @@
+---
+title: Requests
+description: The request above the tree, and how to copy it as curl or fetch.
+seo:
+  image: /og/requests.png
+---
+
+Above the tree is the request a frontend would send for what you see, on one line: the URL, a count of its headers, and the response's size and the time it took to build.
+
+## The URL on one line
+
+A Delivery API URL with an `expand` and a `fields` parameter is long. When it does not fit, the inspector shortens it in an order that keeps the useful part visible for as long as possible:
+
+1. The fixed `/umbraco/delivery/api/v2` base is dropped.
+2. The item's GUID is shortened in the middle.
+3. The query string is shortened in the middle, a little at a time.
+
+Hover the URL to see it in full.
+
+## Headers
+
+Click the header count to list the headers the request carries, or hover it to see them: `Accept-Language` and `Accept-Segment` for a culture or segment, and `Preview: true` for the draft. When the request needs an API key, because it asks for the draft or because public access is off, the `Api-Key` header holds a placeholder. The inspector never shows or copies the site's key.
+
+## Copy
+
+The **Copy** menu copies the request three ways. **Copy URL** copies the full address. **Copy as curl** copies a curl command with the headers, and with the brackets and `$` in the query string encoded so the shell leaves them alone. **Copy as fetch** copies the same request as a JavaScript `fetch` call. Replace the API key placeholder before you run curl or fetch.
+
+**Copy response**, at the bottom of the menu, copies the response itself as formatted JSON.
