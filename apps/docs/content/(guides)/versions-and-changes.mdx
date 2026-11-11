@@ -9,11 +9,13 @@ A document has up to two versions in the Delivery API: the draft, which `Preview
 
 - **Draft** is the default, because it is the version you are editing. A dot on it means the draft has changes that are not published yet.
 - **Published** is what frontends get today. It is disabled for a document that has never been published.
-- **Changes** compares the two and shows what publishing the draft would change, with a count.
+- **Changes** compares the two and shows what publishing the draft would change. Once it is selected, it shows how many changes there are.
 
 ## Changes
 
 The Changes view shows the draft's tree with every difference marked, and opens the branches that contain a change, so you see every change without opening the tree by hand.
+
+The **Changes as** switch sets how a difference is drawn:
 
 - **Diff**, the default, shows a changed value as two lines, like a code review: the published value in red, then the draft's in green.
 - **Inline** keeps a changed value on one line, the published value struck through next to the draft's.

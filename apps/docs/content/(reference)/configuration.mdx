@@ -23,7 +23,7 @@ Every setting is optional. With none, administrators see the API tab on document
 | `Media` | `true` | Shows the API tab on media items too. |
 | `UserGroups` | `[]` | The aliases of the user groups that see the tab. Empty means administrators only. |
 
-The settings are read on every request, so a change to appsettings takes effect without a restart.
+The package's API reads the settings on every request, so a change to appsettings takes effect without a restart. The backoffice decides whether to show the tab when it loads, so reload it to see the tab appear or go.
 
 ## The Delivery API's own settings
 

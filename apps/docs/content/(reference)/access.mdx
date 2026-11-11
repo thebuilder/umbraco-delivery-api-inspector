@@ -9,6 +9,8 @@ The API tab is for developers. By default only administrators see it. Name other
 
 A user with the tab sees an item's output only when they could browse the item anyway: the document needs the Browse permission for that user, and the item has to be inside the user's start nodes. Otherwise the tab answers that the item does not exist, or that they cannot browse it.
 
+The content type labels in the tree link to the document or media type only for users with access to the Settings section. Everyone else sees the same labels as plain text.
+
 The package's API is at `/umbraco/delivery-api-inspector/api`, behind the backoffice's own sign-in, and is left out of the Management API's OpenAPI document. It builds the response on the server, so the browser never needs the Delivery API key, and the key is never sent to it.
 
 ## Production

@@ -11,6 +11,7 @@ seo:
 - A new document has no tab until it has been saved once.
 - `DeliveryApiInspector:Enabled` may be off for this environment.
 - On media items, `DeliveryApiInspector:Media` may be off.
+- After changing these settings, reload the backoffice. It checks for the tab when it loads.
 
 ## The tab says the Delivery API is not added
 
