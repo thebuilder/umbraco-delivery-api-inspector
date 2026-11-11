@@ -224,7 +224,7 @@ export class JsonTreeElement extends LitElement {
     const comma = (last: boolean) => (last ? nothing : html`<span class="punct">,</span>`);
     // Shows on hover, right after the line's own content, so it sits next to what it copies.
     const copy = (key: Segment, value: Json) => html`<button type="button" class="copy" tabindex="-1" aria-label=${`Copy ${key}`} title=${isContainer(value) ? "Copy as JSON" : "Copy value"}
-      @click=${(event: Event) => this.#copy(event, value)}><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5" /><path d="M10.5 3.5v-.5A1.5 1.5 0 0 0 9 1.5H4A1.5 1.5 0 0 0 2.5 3v5A1.5 1.5 0 0 0 4 9.5h.5" /></svg></button>`;
+      @click=${(event: Event) => { (event.currentTarget as HTMLElement).blur(); void this.#copy(event, value); }}><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5" /><path d="M10.5 3.5v-.5A1.5 1.5 0 0 0 9 1.5H4A1.5 1.5 0 0 0 2.5 3v5A1.5 1.5 0 0 0 4 9.5h.5" /></svg></button>`;
 
     const walk = (key: Segment, value: Json, path: Segment[], level: number, parent: Json, parentKey: Segment | undefined, last: boolean) => {
       const keyString = pathKey(path);
@@ -261,9 +261,9 @@ export class JsonTreeElement extends LitElement {
       const [start, end] = brackets(value);
       const pair = ++pairs;
       const tag = !Array.isArray(value) && typeof (value.contentType ?? value.mediaType) === "string"
-        ? html`<span class="tag">${value.contentType ?? value.mediaType}</span>`
+        ? html`<span class="tag" data-text=${value.contentType ?? value.mediaType}></span>`
         : nothing;
-      const count = Array.isArray(value) && entries.length ? html`<span class="meta">${entries.length} ${entries.length === 1 ? "item" : "items"}</span>` : nothing;
+      const count = Array.isArray(value) && entries.length ? html`<span class="meta" data-text=${`${entries.length} ${entries.length === 1 ? "item" : "items"}`}></span>` : nothing;
       const toggle = (event: MouseEvent) => this.#toggle(event, path, value, open);
       const fold = entries.length
         ? html`<button type="button" class="chevron" data-open=${String(open)} tabindex="-1" aria-label=${open ? "Close" : "Open"} title="Alt-click opens or closes everything inside" @click=${toggle}>
@@ -271,7 +271,7 @@ export class JsonTreeElement extends LitElement {
         : nothing;
       rows.push(html`<div class=${classes} data-path=${keyString} role="treeitem" aria-level=${level} aria-expanded=${entries.length ? String(open) : nothing} tabindex="-1" style="--level:${level}"
         @mouseenter=${() => this.#pair(pair)} @mouseleave=${() => this.#pair(undefined)}>
-        ${lead(line, fold)}<span class="code">${entries.length ? html`<span class="toggle" @click=${toggle}>${keyLabel}</span>` : keyLabel}${before}<span class=${entries.length ? "toggle" : ""} @click=${entries.length ? toggle : nothing}>${bracket(start, level, pair)}${open ? nothing : html`${entries.length ? html`<span class="ellipsis">…</span>` : nothing}${bracket(end, level, pair)}`}</span>${open ? nothing : comma(last)}${count}${tag}${entries.length ? copy(key, value) : nothing}</span>
+        ${lead(line, fold)}<span class="code">${entries.length ? html`<span class="toggle" @click=${toggle}>${keyLabel}</span>` : keyLabel}${before}<span class=${entries.length ? "toggle" : ""} @click=${entries.length ? toggle : nothing}>${bracket(start, level, pair)}${open ? nothing : html`${entries.length ? html`<span class="ellipsis" data-text="…"></span>` : nothing}${bracket(end, level, pair)}`}</span>${open ? nothing : comma(last)}${count}${tag}${entries.length ? copy(key, value) : nothing}</span>
       </div>`);
       if (!open) {
         line += lineCount(value);
@@ -281,7 +281,7 @@ export class JsonTreeElement extends LitElement {
       entries.forEach(([childKey, child], index) => walk(childKey, child, [...path, childKey], level + 1, value, key, index === entries.length - 1));
       for (const [removedKey, removed] of this.#removedByParent.get(keyString) ?? []) {
         rows.push(html`<div class="row removed" role="treeitem" aria-level=${level + 1} style="--level:${level + 1}">
-          ${lead(undefined)}<span class="code"><span class="key">${typeof removedKey === "number" ? removedKey : JSON.stringify(removedKey)}</span><span class="punct colon">:</span><span class="before">${preview(removed.before)}</span><span class="meta">Only in published</span></span>
+          ${lead(undefined)}<span class="code"><span class="key">${typeof removedKey === "number" ? removedKey : JSON.stringify(removedKey)}</span><span class="punct colon">:</span><span class="before">${preview(removed.before)}</span><span class="meta" data-text="Only in published"></span></span>
         </div>`);
       }
       rows.push(html`<div class="row close" aria-hidden="true" style="--level:${level}" @mouseenter=${() => this.#pair(pair)} @mouseleave=${() => this.#pair(undefined)}>
@@ -297,7 +297,7 @@ export class JsonTreeElement extends LitElement {
     const top = children(this.data);
     top.forEach(([key, child], index) => walk(key, child, [key], 1, this.data, undefined, index === top.length - 1));
     for (const [removedKey, removed] of this.#removedByParent.get(pathKey([])) ?? []) {
-      rows.push(html`<div class="row removed" style="--level:1">${lead(undefined)}<span class="code"><span class="key">${JSON.stringify(removedKey)}</span><span class="punct colon">:</span><span class="before">${preview(removed.before)}</span><span class="meta">Only in published</span></span></div>`);
+      rows.push(html`<div class="row removed" style="--level:1">${lead(undefined)}<span class="code"><span class="key">${JSON.stringify(removedKey)}</span><span class="punct colon">:</span><span class="before">${preview(removed.before)}</span><span class="meta" data-text="Only in published"></span></span></div>`);
     }
     rows.push(html`<div class="row root" aria-hidden="true" style="--level:0" @mouseenter=${() => this.#pair(rootPair)} @mouseleave=${() => this.#pair(undefined)}>
       ${lead(total)}<span class="code">${bracket(rootEnd, 0, rootPair)}</span></div>`);
@@ -353,6 +353,7 @@ export class JsonTreeElement extends LitElement {
       --json-pair: rgb(0 100 0 / 0.1);
       --json-pair-border: #b9b9b9;
       --json-line: #eeeeee;
+      --json-badge: color-mix(in srgb, var(--uui-color-text, #000) 8%, transparent);
       --json-added: color-mix(in srgb, var(--uui-color-positive, #0b8152) 14%, transparent);
       --json-removed: color-mix(in srgb, var(--uui-color-danger, #d42054) 12%, transparent);
       --json-changed: color-mix(in srgb, var(--uui-color-warning, #fbd142) 22%, transparent);
@@ -473,8 +474,10 @@ export class JsonTreeElement extends LitElement {
       border-radius: 3px;
       line-height: 1.2;
       color: var(--uui-color-text-alt);
-      background: var(--uui-color-surface-emphasis);
+      background: var(--json-badge);
     }
+    /* Hints drawn from an attribute, so selecting and copying the JSON never picks them up. */
+    .meta::after, .tag::after, .ellipsis::after { content: attr(data-text); }
     .meta { margin-left: 8px; font-family: var(--uui-font-family); font-size: 11px; color: var(--uui-color-text-alt); }
     .string { color: var(--json-string); }
     a.link { text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); text-underline-offset: 2px; }
@@ -486,7 +489,7 @@ export class JsonTreeElement extends LitElement {
       padding: 0 7px;
       border-radius: 99px;
       font: 600 10.5px/1.6 var(--uui-font-family);
-      background: var(--uui-color-surface-emphasis);
+      background: var(--json-badge);
       color: var(--uui-color-text-alt);
     }
     button.copy {
@@ -509,7 +512,7 @@ export class JsonTreeElement extends LitElement {
       stroke: currentColor;
       stroke-width: 1.2;
     }
-    .row:hover button.copy, .row:focus-within button.copy { opacity: 1; }
+    .row:hover button.copy, .row:focus-visible button.copy { opacity: 1; }
     button.copy:hover { color: var(--uui-color-text); background: var(--uui-color-surface-emphasis); }
     button.copy:focus-visible { opacity: 1; outline: 2px solid var(--uui-color-focus); }
     /* A container's key and its brackets fold it too, not only the arrow. */
