@@ -1,0 +1,29 @@
+---
+title: Delivery API Inspector for Umbraco
+description: An API tab on every document and media item in the Umbraco backoffice, showing exactly what the Delivery API returns for it.
+sidebar:
+  label: Overview
+seo:
+  image: /og/overview.png
+---
+
+Delivery API Inspector adds an **API** tab to every document and media item in the Umbraco backoffice. It shows the JSON the Delivery API returns for that item, so a developer can see what a frontend gets without leaving the page they are editing.
+
+![The API tab on a document, with the request on one line above a collapsible tree of the response.](./screenshots/document.png)
+
+- **The real output.** The tab builds the response with the Delivery API's own builders, the same code the public endpoint runs. What you see is the same JSON a frontend receives.
+- **One view, with a switch.** Draft is the default, because that is what you are editing. Switch to Published for what frontends get today, or to Changes for what publishing would change.
+- **Made for reading.** A tree you can search and filter, open levels at a click, `expand` and `fields` without typing the syntax, all laid out like the JSON in a code editor.
+- **Aware of Umbraco.** Collapsed blocks and pickers show their content type, which links to the type itself. Media rows show a thumbnail on hover, and a GUID opens its document or media item in a new tab.
+- **Ready to copy.** The request is shown as a URL with its headers, and copies as a URL, a curl command or a `fetch` call. The whole response, or any one part of it, copies as formatted JSON.
+
+## What it is not
+
+It is not a Swagger UI or an API client. Umbraco 18 documents the Delivery API in its own OpenAPI document, and a tool such as Bruno or Postman is better for exploring endpoints. The inspector answers one question well: what does the API return for the item in front of me?
+
+## Requirements
+
+- Umbraco CMS 17.4 or later, including Umbraco 18, on .NET 10.
+- The Delivery API added in `Program.cs` with `AddDeliveryApi()`. It does not have to be enabled for the public: the tab works on a site where `DeliveryApi:Enabled` is off, and says so.
+
+Start with the [quickstart](/quickstart).

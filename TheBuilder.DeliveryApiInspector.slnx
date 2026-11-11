@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TheBuilder.DeliveryApiInspector/TheBuilder.DeliveryApiInspector.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/TheBuilder.DeliveryApiInspector.Example/TheBuilder.DeliveryApiInspector.Example.csproj" />
+  </Folder>
+</Solution>

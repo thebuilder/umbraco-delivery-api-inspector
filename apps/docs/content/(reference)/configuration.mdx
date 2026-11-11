@@ -1,0 +1,34 @@
+---
+title: Configuration
+description: Every setting under DeliveryApiInspector in appsettings.
+seo:
+  image: /og/configuration.png
+---
+
+Every setting is optional. With none, administrators see the API tab on documents and media items.
+
+```json appsettings.json
+{
+  "DeliveryApiInspector": {
+    "Enabled": true,
+    "Media": true,
+    "UserGroups": []
+  }
+}
+```
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `Enabled` | `true` | Shows the API tab. Turn it off to hide the tab and refuse the package's API on an environment, such as production. |
+| `Media` | `true` | Shows the API tab on media items too. |
+| `UserGroups` | `[]` | The aliases of the user groups that see the tab. Empty means administrators only. |
+
+The package's API reads the settings on every request, so a change to appsettings takes effect without a restart. The backoffice decides whether to show the tab when it loads, so reload it to see the tab appear or go.
+
+## The Delivery API's own settings
+
+The inspector reads the Delivery API's settings to describe the request, and never changes them.
+
+- With `DeliveryApi:Enabled` off, the tab still shows what the API would return, and says that frontends get nothing.
+- With `DeliveryApi:PublicAccess` off, or for the draft, the request shows an `Api-Key` header with a placeholder.
+- With `DeliveryApi:Media:Enabled` off, the media tab says so.
