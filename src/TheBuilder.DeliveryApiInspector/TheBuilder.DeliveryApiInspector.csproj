@@ -8,7 +8,7 @@
     <!-- The local fallback. A release sets the version from its tag. -->
     <Version>0.1.0</Version>
     <Authors>Daniel Schmidt</Authors>
-    <Description>An API tab on every document and media item that shows exactly what the Umbraco Delivery API returns for it, with search, expand and fields, and a diff of draft against published.</Description>
+    <Description>An API tab on every document and media item with the JSON the Umbraco Delivery API returns for it, with search, expand and fields, and a diff of draft against published.</Description>
     <PackageTags>umbraco;umbraco-marketplace;umbraco-cms;delivery-api;headless;json;developer-tools</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/thebuilder/umbraco-delivery-api-inspector</PackageProjectUrl>
