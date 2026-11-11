@@ -257,7 +257,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
     return html`<div class="segmented" role="group" aria-label=${label}>
       <span class="label" aria-hidden="true">${label}</span>
       <span class="track">${options.map(([option, text, title]) => html`<button type="button" aria-pressed=${String(option === value)} title=${title ?? text}
-        ?disabled=${disabled(option)} @click=${() => set(option)}>${text}</button>`)}</span>
+        ?disabled=${disabled(option)} @click=${() => set(option)}><span class="t">${text}</span></button>`)}</span>
     </div>`;
   }
 
@@ -298,7 +298,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
   /** One choice in a menu: a tick for a single choice, a checkbox for one of several. */
   #item(text: unknown, checked: boolean, kind: "choice" | "check", pick: () => void) {
     return html`<button type="button" class="item" role=${kind === "check" ? "menuitemcheckbox" : "menuitemradio"} aria-checked=${String(checked)} data-kind=${kind} @click=${pick}>
-      <span class="mark" aria-hidden="true">${checked ? html`<svg viewBox="0 0 12 10"><path d="M1.5 5.2l3 3L10.5 1.8" /></svg>` : nothing}</span>${text}
+      <span class="mark" aria-hidden="true">${checked ? html`<svg viewBox="0 0 12 10"><path d="M1.5 5.2l3 3L10.5 1.8" /></svg>` : nothing}</span><span class="t">${text}</span>
     </button>`;
   }
 
@@ -307,7 +307,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
     return html`<span class="select">
       <span class="label" id=${`${id}-label`}>${label}</span>
       <button type="button" class="box" popovertarget=${id} aria-haspopup="menu" aria-labelledby=${`${id}-label ${id}-value`}>
-        <span class="value" id=${`${id}-value`}>${summary}</span>
+        <span class="value t" id=${`${id}-value`}>${summary}</span>
         <svg class="chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
       </button>
     </span>`;
@@ -345,13 +345,13 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
     const copy = (text: string, message: string) => { this.#closeMenu("copy-menu"); void this.#copy(text, message); };
     const origin = backofficeOrigin();
     return html`<button type="button" class="copy-button" popovertarget="copy-menu" aria-haspopup="menu">
-        <uui-icon name="icon-documents"></uui-icon>Copy<svg class="chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
+        <uui-icon name="icon-documents"></uui-icon><span class="t">Copy</span><svg class="chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
       </button>
       ${this.#menu("copy-menu", "end", html`
-        <button type="button" class="item" role="menuitem" @click=${() => copy(origin + fullUrl(request), "Copied the URL.")}>Copy URL</button>
-        <button type="button" class="item" role="menuitem" @click=${() => copy(toCurl(origin, request), "Copied the curl command.")}>Copy as curl</button>
-        <button type="button" class="item" role="menuitem" @click=${() => copy(toFetch(origin, request), "Copied the fetch call.")}>Copy as fetch</button>
-        ${this._response ? html`<hr /><button type="button" class="item" role="menuitem" @click=${() => copy(JSON.stringify(this._response?.data, null, 2), "Copied the response.")}>Copy response</button>` : nothing}`)}`;
+        <button type="button" class="item" role="menuitem" @click=${() => copy(origin + fullUrl(request), "Copied the URL.")}><span class="t">Copy URL</span></button>
+        <button type="button" class="item" role="menuitem" @click=${() => copy(toCurl(origin, request), "Copied the curl command.")}><span class="t">Copy as curl</span></button>
+        <button type="button" class="item" role="menuitem" @click=${() => copy(toFetch(origin, request), "Copied the fetch call.")}><span class="t">Copy as fetch</span></button>
+        ${this._response ? html`<hr /><button type="button" class="item" role="menuitem" @click=${() => copy(JSON.stringify(this._response?.data, null, 2), "Copied the response.")}><span class="t">Copy response</span></button>` : nothing}`)}`;
   }
 
   render() {
@@ -378,11 +378,11 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
             ? html`<div class="segmented" role="group" aria-label="Version"><span class="track">
                 <button type="button" aria-pressed=${String(this._mode === "draft")} @click=${() => (this._mode = "draft")}
                   title=${draftDiffers ? "The draft has changes that are not published" : "The latest saved version, as Preview: true returns it"}>
-                  ${draftDiffers ? html`<span class="dot" aria-hidden="true"></span>` : nothing}Draft</button>
+                  ${draftDiffers ? html`<span class="dot" aria-hidden="true"></span>` : nothing}<span class="t">Draft</span></button>
                 <button type="button" aria-pressed=${String(this._mode === "published")} ?disabled=${!this._published}
-                  title=${this._published ? "What frontends get today" : "Not published yet"} @click=${() => (this._mode = "published")}>Published</button>
+                  title=${this._published ? "What frontends get today" : "Not published yet"} @click=${() => (this._mode = "published")}><span class="t">Published</span></button>
                 <button type="button" aria-pressed=${String(this._mode === "changes")} ?disabled=${!this._published}
-                  title="What publishing the draft would change" @click=${() => (this._mode = "changes")}>Changes
+                  title="What publishing the draft would change" @click=${() => (this._mode = "changes")}><span class="t">Changes</span>
                   ${this._mode === "changes" && this._changes ? html`<span class="count">${this._changes.size}</span>` : nothing}</button>
               </span></div>`
             : nothing}
@@ -473,6 +473,12 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         --inspector-track: color-mix(in srgb, var(--uui-color-border) 30%, var(--uui-color-surface));
         --inspector-code: color-mix(in srgb, var(--uui-color-background) 45%, var(--uui-color-surface));
       }
+      /* Text in a control is trimmed to its capitals and baseline, so centring it centres what you
+         see, in any font and on any platform, and it lines up with the icons beside it. */
+      .t {
+        display: block;
+        text-box: trim-both cap alphabetic;
+      }
       .panel {
         display: flex;
         flex-direction: column;
@@ -536,10 +542,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         gap: 8px;
         height: 30px;
         box-sizing: border-box;
-        /* Lato's line box carries more room below the baseline than above the capitals, so centred
-           text reads about a pixel high. 2px on top centres the value by eye, and the chevron moves
-           back up to meet it. */
-        padding: 2px 10px 0;
+        padding: 0 10px;
         border-radius: 7px;
         background: var(--uui-color-surface);
         box-shadow: inset 0 0 0 1px var(--uui-color-border);
@@ -568,7 +571,6 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         flex: none;
         width: 10px;
         height: 6px;
-        margin-top: -2px;
         fill: none;
         stroke: var(--uui-color-text-alt);
         stroke-width: 1.5;
@@ -599,7 +601,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         gap: 8px;
         width: 100%;
         height: 30px;
-        padding: 2px 12px 0 8px;
+        padding: 0 12px 0 8px;
         border-radius: 5px;
         white-space: nowrap;
         cursor: pointer;
@@ -617,7 +619,6 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         place-items: center;
         width: 14px;
         height: 14px;
-        margin-top: -2px;
         box-sizing: border-box;
       }
       .menu .mark svg {
@@ -749,8 +750,9 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         display: inline-flex;
         gap: 6px;
         align-items: center;
-        /* One extra pixel on top, for the same Lato offset the dropdowns correct. */
-        padding: 5px 10px 3px;
+        height: 23px;
+        box-sizing: border-box;
+        padding: 0 10px;
         border-radius: 6px;
         font-size: 13px;
         color: var(--uui-color-text-alt);
@@ -912,7 +914,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         white-space: nowrap;
         height: 30px;
         box-sizing: border-box;
-        padding: 2px 10px 0;
+        padding: 0 10px;
         border-radius: 7px;
         font: 500 12.5px var(--uui-font-family);
         color: var(--uui-color-text);
@@ -922,9 +924,9 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       }
       .copy-button uui-icon {
         font-size: 13px;
-        margin-top: -2px;
         color: var(--uui-color-text-alt);
       }
+
       .copy-button:hover {
         background: var(--inspector-track);
       }
