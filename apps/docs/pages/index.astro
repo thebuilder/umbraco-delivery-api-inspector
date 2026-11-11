@@ -21,16 +21,16 @@ const marketplaceUrl = inspectorPackage.links.marketplace;
 
 const features = [
   {
-    title: "The real output",
-    body: "Built with the Delivery API's own builders, so the tab shows the same JSON a frontend receives.",
+    title: "The JSON a frontend gets",
+    body: "The tab builds the response with the Delivery API's own builders, the code the public endpoint runs.",
   },
   {
-    title: "Draft first, with a switch",
-    body: "See the draft you are editing, flip to what is published, or see exactly what a publish would change.",
+    title: "Draft, published and changes",
+    body: "See the draft you are editing, switch to what is published, or see what a publish would change.",
   },
   {
-    title: "Made for reading",
-    body: "Search that filters, levels at a click, expand and fields without the syntax, and blocks labelled with their content type.",
+    title: "A tree you can search",
+    body: "Filter the response, open it to a set depth, pick expand and fields from a menu, and see each block's content type.",
   },
 ];
 ---
@@ -59,7 +59,7 @@ const features = [
       layout="split"
       title="See what the Delivery API returns,"
       accent="right where you edit."
-      description="An API tab on every document and media item in the backoffice, with the exact JSON a frontend gets for it."
+      description="An API tab on every document and media item in the backoffice, with the JSON a frontend gets for it."
       compatibility="Umbraco CMS 17.4 or later · .NET 10"
     >
       <HeroParticles slot="background" logo="/logo-mark.svg" />
@@ -75,10 +75,6 @@ const features = [
         <figcaption>The real API tab, on an article from the sample site. Switch to Changes, expand the pickers, or search.</figcaption>
       </figure>
     </LandingHero>
-
-    <section class="shell trust reveal">
-      <p><strong>No Swagger, no API client, no copied keys.</strong> Open the document, click API, and read the response.</p>
-    </section>
 
     <section class="shell section" aria-labelledby="features-title">
       <div class="section-heading reveal">

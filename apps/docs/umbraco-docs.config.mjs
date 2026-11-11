@@ -12,6 +12,6 @@ export default defineOgConfig({
   logo: "/logo-mark.svg",
   root: {
     title: "Delivery API Inspector for Umbraco",
-    description: "See exactly what the Delivery API returns for a document, right where you edit it.",
+    description: "See what the Delivery API returns for a document, right where you edit it.",
   },
 });

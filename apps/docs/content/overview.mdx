@@ -1,6 +1,6 @@
 ---
 title: Delivery API Inspector for Umbraco
-description: An API tab on every document and media item in the Umbraco backoffice, showing exactly what the Delivery API returns for it.
+description: An API tab on every document and media item in the Umbraco backoffice, with the JSON the Delivery API returns for it.
 sidebar:
   label: Overview
 seo:
@@ -11,15 +11,17 @@ Delivery API Inspector adds an **API** tab to every document and media item in t
 
 ![The API tab on a document, with the request on one line above a collapsible tree of the response.](./screenshots/document.png)
 
-- **The real output.** The tab builds the response with the Delivery API's own builders, the same code the public endpoint runs. What you see is the same JSON a frontend receives.
-- **One view, with a switch.** Draft is the default, because that is what you are editing. Switch to Published for what frontends get today, or to Changes for what publishing would change.
-- **Made for reading.** A tree you can search and filter, open levels at a click, `expand` and `fields` without typing the syntax, all laid out like the JSON in a code editor.
-- **Aware of Umbraco.** Collapsed blocks and pickers show their content type, which links to the type itself. Media rows show a thumbnail on hover, and a GUID opens its document or media item in a new tab.
-- **Ready to copy.** The request is shown as a URL with its headers, and copies as a URL, a curl command or a `fetch` call. The whole response, or any one part of it, copies as formatted JSON.
+The tab builds the response with the Delivery API's own builders, the code the public endpoint runs, so it shows the JSON a frontend receives.
 
-## What it is not
+Draft is the default view, because that is the version you are editing. Published shows what frontends get today, and Changes shows what publishing the draft would change.
 
-It is not a Swagger UI or an API client. Umbraco 18 documents the Delivery API in its own OpenAPI document, and a tool such as Bruno or Postman is better for exploring endpoints. The inspector answers one question well: what does the API return for the item in front of me?
+The response is a tree laid out like JSON in a code editor. You can search and filter it, open it to a set depth, and set `expand` and `fields` from a menu. Collapsed blocks and pickers show their content type, with a link to the type. Media rows show a thumbnail on hover, and a GUID opens its document or media item in a new tab.
+
+The request above the tree copies as a URL, a curl command or a `fetch` call. The whole response, or any part of it, copies as formatted JSON.
+
+## Other tools
+
+The inspector shows the response for one item. To explore the Delivery API's endpoints, use the OpenAPI document Umbraco 18 publishes for it, or an API client such as Bruno or Postman.
 
 ## Requirements
 
