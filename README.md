@@ -42,15 +42,8 @@ The package is a preview. It supports Umbraco 17.4 and later, Umbraco 18 include
 
 3. Sign in as an administrator, open a document, and click **API**.
 
-Only administrators see the tab until you name other user groups:
-
-```json
-{
-  "DeliveryApiInspector": {
-    "UserGroups": ["admin", "developers"]
-  }
-}
-```
+Administrators see the tab. To give it to another group, turn on **View Delivery API output** in the
+group's permissions under **Users**, **User groups**. It can be set for part of the content tree too.
 
 The [documentation](https://delivery-api-inspector.thebuilder.dk/) covers every view, the request
 bar, access and configuration.

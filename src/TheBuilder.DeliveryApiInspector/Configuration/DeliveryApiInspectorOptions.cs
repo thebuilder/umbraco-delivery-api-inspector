@@ -13,8 +13,9 @@ public sealed class DeliveryApiInspectorOptions
     public bool Media { get; set; } = true;
 
     /// <summary>
-    ///     The aliases of the user groups that see the API tab. Empty, the default, means administrators
-    ///     only.
+    ///     The aliases of user groups that see the API tab on every item, whatever their permissions. The
+    ///     View Delivery API output permission, set under Users, User groups, grants it too. Empty by
+    ///     default.
     /// </summary>
     public IList<string> UserGroups { get; set; } = [];
 }
