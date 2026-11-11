@@ -351,9 +351,9 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         <uui-icon name="icon-documents"></uui-icon>Copy<svg class="chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
       </button>
       ${this.#menu("copy-menu", "end", html`
-        <button type="button" class="item" role="menuitem" @click=${() => copy(origin + fullUrl(request), "Copied the URL.")}>URL</button>
-        <button type="button" class="item" role="menuitem" @click=${() => copy(toCurl(origin, request), "Copied the curl command.")}>curl</button>
-        <button type="button" class="item" role="menuitem" @click=${() => copy(toFetch(origin, request), "Copied the fetch call.")}>fetch</button>`)}`;
+        <button type="button" class="item" role="menuitem" @click=${() => copy(origin + fullUrl(request), "Copied the URL.")}>Copy URL</button>
+        <button type="button" class="item" role="menuitem" @click=${() => copy(toCurl(origin, request), "Copied the curl command.")}>Copy as curl</button>
+        <button type="button" class="item" role="menuitem" @click=${() => copy(toFetch(origin, request), "Copied the fetch call.")}>Copy as fetch</button>`)}`;
   }
 
   render() {
