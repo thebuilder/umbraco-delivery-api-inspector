@@ -453,7 +453,8 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
     const data: Json = this._response.data;
     return html`<thebuilder-json-tree class=${this._loading ? "loading" : ""} theme=${this._theme} .data=${data} .changes=${this._mode === "changes" ? this._changes : undefined}
       .depth=${this._depth} .query=${this._query} changeStyle=${this._changeStyle}
-      @hits=${(event: CustomEvent<TreeHits>) => (this._hits = event.detail)}></thebuilder-json-tree>`;
+      @hits=${(event: CustomEvent<TreeHits>) => (this._hits = event.detail)}
+      @copied=${(event: CustomEvent<string>) => this.#notification?.peek("positive", { data: { message: event.detail } })}></thebuilder-json-tree>`;
   }
 
   static styles = [

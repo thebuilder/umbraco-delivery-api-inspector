@@ -189,6 +189,17 @@ export class JsonTreeElement extends LitElement {
     }
   }
 
+  async #copy(event: Event, value: Json): Promise<void> {
+    event.stopPropagation();
+    const text = isContainer(value) ? JSON.stringify(value, null, 2) : String(value);
+    try {
+      await navigator.clipboard.writeText(text);
+      this.dispatchEvent(new CustomEvent("copied", { detail: isContainer(value) ? `Copied the ${Array.isArray(value) ? "array" : "object"}.` : "Copied the value." }));
+    } catch {
+      this.dispatchEvent(new CustomEvent("copied", { detail: "The browser blocked copying." }));
+    }
+  }
+
   /** Lights up one pair of brackets, as an editor does at the cursor, without rendering the tree again. */
   #pair(id: number | undefined): void {
     const style = this.renderRoot.querySelector<HTMLStyleElement>("style.pair");
@@ -211,6 +222,9 @@ export class JsonTreeElement extends LitElement {
       html`<span class="ln" aria-hidden="true">${number ?? ""}</span><span class="sign" aria-hidden="true"></span><span class="fold">${fold}</span>`;
     const bracket = (text: string, depth: number, pair: number) => html`<span class="bracket b${depth % 3}" data-pair=${pair}>${text}</span>`;
     const comma = (last: boolean) => (last ? nothing : html`<span class="punct">,</span>`);
+    // Shows on hover, right after the line's own content, so it sits next to what it copies.
+    const copy = (key: Segment, value: Json) => html`<button type="button" class="copy" tabindex="-1" aria-label=${`Copy ${key}`} title=${isContainer(value) ? "Copy as JSON" : "Copy value"}
+      @click=${(event: Event) => this.#copy(event, value)}><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5" /><path d="M10.5 3.5v-.5A1.5 1.5 0 0 0 9 1.5H4A1.5 1.5 0 0 0 2.5 3v5A1.5 1.5 0 0 0 4 9.5h.5" /></svg></button>`;
 
     const walk = (key: Segment, value: Json, path: Segment[], level: number, parent: Json, parentKey: Segment | undefined, last: boolean) => {
       const keyString = pathKey(path);
@@ -237,7 +251,7 @@ export class JsonTreeElement extends LitElement {
         rows.push(html`<div class=${classes} data-path=${keyString} role="treeitem" aria-level=${level} tabindex="-1" style="--level:${level}"
           @mouseenter=${isImageUrl(parent, key, value) ? (event: MouseEvent) => this.#showThumb(event, keyString, parent, value) : nothing}
           @mouseleave=${isImageUrl(parent, key, value) ? () => (this._thumb = undefined) : nothing}>
-          ${lead(line++)}<span class="code">${keyLabel}${before}${this.#value(key, value, path, parent, parentKey)}${comma(last)}</span>
+          ${lead(line++)}<span class="code">${keyLabel}${before}${this.#value(key, value, path, parent, parentKey)}${comma(last)}${copy(key, value)}</span>
         </div>`);
         return;
       }
@@ -257,7 +271,7 @@ export class JsonTreeElement extends LitElement {
         : nothing;
       rows.push(html`<div class=${classes} data-path=${keyString} role="treeitem" aria-level=${level} aria-expanded=${entries.length ? String(open) : nothing} tabindex="-1" style="--level:${level}"
         @mouseenter=${() => this.#pair(pair)} @mouseleave=${() => this.#pair(undefined)}>
-        ${lead(line, fold)}<span class="code">${entries.length ? html`<span class="toggle" @click=${toggle}>${keyLabel}</span>` : keyLabel}${before}<span class=${entries.length ? "toggle" : ""} @click=${entries.length ? toggle : nothing}>${bracket(start, level, pair)}${open ? nothing : html`${entries.length ? html`<span class="ellipsis">…</span>` : nothing}${bracket(end, level, pair)}`}</span>${open ? nothing : comma(last)}${count}${tag}</span>
+        ${lead(line, fold)}<span class="code">${entries.length ? html`<span class="toggle" @click=${toggle}>${keyLabel}</span>` : keyLabel}${before}<span class=${entries.length ? "toggle" : ""} @click=${entries.length ? toggle : nothing}>${bracket(start, level, pair)}${open ? nothing : html`${entries.length ? html`<span class="ellipsis">…</span>` : nothing}${bracket(end, level, pair)}`}</span>${open ? nothing : comma(last)}${count}${tag}${entries.length ? copy(key, value) : nothing}</span>
       </div>`);
       if (!open) {
         line += lineCount(value);
@@ -475,6 +489,29 @@ export class JsonTreeElement extends LitElement {
       background: var(--uui-color-surface-emphasis);
       color: var(--uui-color-text-alt);
     }
+    button.copy {
+      all: unset;
+      display: inline-grid;
+      place-items: center;
+      align-self: center;
+      width: 18px;
+      height: 18px;
+      margin-left: 6px;
+      border-radius: 3px;
+      cursor: pointer;
+      color: var(--uui-color-text-alt);
+      opacity: 0;
+    }
+    button.copy svg {
+      width: 13px;
+      height: 13px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.2;
+    }
+    .row:hover button.copy, .row:focus-within button.copy { opacity: 1; }
+    button.copy:hover { color: var(--uui-color-text); background: var(--uui-color-surface-emphasis); }
+    button.copy:focus-visible { opacity: 1; outline: 2px solid var(--uui-color-focus); }
     /* A container's key and its brackets fold it too, not only the arrow. */
     .toggle {
       cursor: pointer;
