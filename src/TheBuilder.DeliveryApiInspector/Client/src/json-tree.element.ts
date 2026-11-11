@@ -522,6 +522,7 @@ export class JsonTreeElement extends LitElement {
       cursor: pointer;
       color: var(--uui-color-text-alt);
       opacity: 0;
+      transition: opacity 80ms ease;
     }
     button.copy svg {
       width: 13px;
@@ -530,9 +531,14 @@ export class JsonTreeElement extends LitElement {
       stroke: currentColor;
       stroke-width: 1.2;
     }
-    .row:hover button.copy, .row:focus-visible button.copy { opacity: 1; }
+    /* Fades in once the pointer rests on a line, so sweeping across the tree does not flash it on every row. */
+    .row:hover button.copy { opacity: 1; transition: opacity 150ms ease 350ms; }
+    .row:focus-visible button.copy, button.copy:hover, button.copy:focus-visible { opacity: 1; transition: none; }
     button.copy:hover { color: var(--uui-color-text); background: var(--uui-color-surface-emphasis); }
-    button.copy:focus-visible { opacity: 1; outline: 2px solid var(--uui-color-focus); }
+    button.copy:focus-visible { outline: 2px solid var(--uui-color-focus); }
+    @media (prefers-reduced-motion: reduce) {
+      .row:hover button.copy { transition: opacity 0s linear 350ms; }
+    }
     /* A container's key and its brackets fold it too, not only the arrow. */
     .toggle {
       cursor: pointer;
