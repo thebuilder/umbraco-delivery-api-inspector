@@ -3,13 +3,10 @@ import { api, backofficeOrigin, editUrl, thumbnail, typeUrl } from "./api.js";
 import {
   changedAncestors,
   children,
-  getAt,
   guidKind,
   isContainer,
   isGuid,
   isImageUrl,
-  matches,
-  parsePath,
   pathKey,
   search,
   type Change,
@@ -22,8 +19,6 @@ export interface TreeHits {
   count: number;
   /** The current hit, from 0; -1 when there are none. */
   index: number;
-  /** Whether the query is a path that resolved, rather than text to search for. */
-  path: boolean;
 }
 
 /**
@@ -39,7 +34,7 @@ export class JsonTreeElement extends LitElement {
   @property() changeStyle: "diff" | "inline" = "diff";
   /** How many levels are open, where a row has not been opened or closed by hand. */
   @property({ type: Number }) depth = 3;
-  /** Text to search keys and values for, or a path such as properties.image[0].url to jump to. */
+  /** Text to filter the tree by: a key, a value, or part of a path such as properties.image[0].url. */
   @property() query = "";
   /** Document and media type keys by alias, so a type badge can open its type. */
   @property({ attribute: false }) types?: { document: Record<string, string> | null; media: Record<string, string> | null };
@@ -51,7 +46,9 @@ export class JsonTreeElement extends LitElement {
 
   #hits: Segment[][] = [];
   #keep = new Set<string>();
-  #jump?: Segment[];
+  #hitKeys = new Set<string>();
+  /** The block the pointer or focus is in, lit up by its brackets and indent guide. */
+  #block?: number;
   #changedOpen = new Set<string>();
   #removedByParent = new Map<string, [Segment, Change][]>();
 
@@ -84,28 +81,23 @@ export class JsonTreeElement extends LitElement {
       }
     }
     if (changed.has("data") || changed.has("query")) {
-      const path = parsePath(this.query);
-      this.#jump = path && path.length && getAt(this.data, path) !== undefined ? path : undefined;
-      const result = this.#jump ? { hits: [this.#jump], keep: new Set<string>() } : search(this.data, this.query.trim());
+      const result = search(this.data, this.query.trim());
       this.#hits = result.hits;
       this.#keep = result.keep;
-      if (this.#jump) {
-        this._overrides = new Map(this._overrides);
-        for (let length = 0; length < this.#jump.length; length++) {
-          this._overrides.set(pathKey(this.#jump.slice(0, length)), true);
-        }
-      }
+      this.#hitKeys = new Set(result.hits.map(pathKey));
       this._hit = 0;
     }
   }
 
   protected updated(changed: PropertyValues): void {
+    // Rows move when the tree draws again, so the lit block is measured again.
+    this.#light(this.#block);
     if (changed.has("_thumb")) {
       const image = this.renderRoot.querySelector<HTMLElement>("img.thumb");
       if (image && !image.matches(":popover-open")) image.showPopover?.();
     }
     if (changed.has("_hit") || changed.has("query") || changed.has("data")) {
-      const hits: TreeHits = { count: this.#hits.length, index: this.#hits.length ? this._hit : -1, path: !!this.#jump };
+      const hits: TreeHits = { count: this.#hits.length, index: this.#hits.length ? this._hit : -1 };
       this.dispatchEvent(new CustomEvent("hits", { detail: hits }));
       if (this.#hits.length) {
         this.renderRoot.querySelector(".row.current")?.scrollIntoView({ block: "nearest" });
@@ -149,7 +141,7 @@ export class JsonTreeElement extends LitElement {
     const key = pathKey(path);
     const override = this._overrides.get(key);
     if (override !== undefined) return override;
-    if (this.query.trim() && !this.#jump) return this.#keep.has(key);
+    if (this.query.trim()) return this.#keep.has(key);
     if (this.changes) return this.#changedOpen.has(key);
     return level < this.depth;
   }
@@ -213,10 +205,45 @@ export class JsonTreeElement extends LitElement {
       title=${`Open the ${alias} ${media ? "media" : "document"} type`} aria-label=${`Open the ${alias} ${media ? "media" : "document"} type`}></a>`;
   }
 
-  /** Lights up one pair of brackets, as an editor does at the cursor, without rendering the tree again. */
-  #pair(id: number | undefined): void {
+  /** Lights up the block a row sits in, from the row the pointer is over or that has focus. */
+  #onPoint(event: Event): void {
+    const row = (event.target as HTMLElement).closest?.<HTMLElement>(".row[data-block]");
+    const id = row ? Number(row.dataset.block) : undefined;
+    if (id !== this.#block) this.#light(id);
+  }
+
+  /**
+   * Lights up one block as an editor's bracket pair guides do: its brackets bold, and the indent
+   * guide that runs down its contents in the brackets' colour. Done with one style rule, so the
+   * tree does not draw again as the pointer moves.
+   */
+  #light(id: number | undefined): void {
+    this.#block = id;
     const style = this.renderRoot.querySelector<HTMLStyleElement>("style.pair");
-    if (style) style.textContent = id === undefined ? "" : `.bracket[data-pair="${id}"] { background: var(--json-pair); box-shadow: 0 0 0 1px var(--json-pair-border); border-radius: 2px; }`;
+    if (!style) return;
+    if (id === undefined) {
+      style.textContent = "";
+      return;
+    }
+    let rules = `.bracket[data-pair="${id}"] { font-weight: 700; }`;
+    const tree = this.renderRoot.querySelector(".tree");
+    const open = this.renderRoot.querySelector<HTMLElement>(`.row[data-open="${id}"]`);
+    const close = this.renderRoot.querySelector(`.row[data-close="${id}"]`);
+    if (tree && open && close) {
+      const rows = [...tree.children];
+      // nth-child counts from 1: the rows between the open and the close line.
+      const first = rows.indexOf(open) + 2;
+      const last = rows.indexOf(close);
+      const level = Number(open.dataset.level);
+      if (last >= first) {
+        rules += ` .tree > .row:nth-child(n+${first}):nth-child(-n+${last}) > .code {
+          background-image: linear-gradient(var(--json-b${level % 3}), var(--json-b${level % 3})), var(--json-guides);
+          background-size: 1px 100%, calc(var(--level) * 2ch) 100%;
+          background-position: calc(${level} * 2ch) 0, 0 0;
+        }`;
+      }
+    }
+    style.textContent = rules;
   }
 
   render() {
@@ -225,7 +252,7 @@ export class JsonTreeElement extends LitElement {
     }
     const rows: TemplateResult[] = [];
     const current = this.#hits.length ? pathKey(this.#hits[this._hit]) : undefined;
-    const searching = !!this.query.trim() && !this.#jump;
+    const searching = !!this.query.trim();
     const brackets = (value: Json[] | object): [string, string] => (Array.isArray(value) ? ["[", "]"] : ["{", "}"]);
     // Line numbers are the lines of the formatted JSON, so a closed or filtered branch skips its lines
     // as a fold in an editor does. Lines only in published have no number.
@@ -239,16 +266,17 @@ export class JsonTreeElement extends LitElement {
     const copy = (key: Segment, value: Json) => html`<button type="button" class="copy" tabindex="-1" aria-label=${`Copy ${key}`} title=${isContainer(value) ? "Copy as JSON" : "Copy value"}
       @click=${(event: Event) => { (event.currentTarget as HTMLElement).blur(); void this.#copy(event, value); }}><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5" /><path d="M10.5 3.5v-.5A1.5 1.5 0 0 0 9 1.5H4A1.5 1.5 0 0 0 2.5 3v5A1.5 1.5 0 0 0 4 9.5h.5" /></svg></button>`;
 
-    const walk = (key: Segment, value: Json, path: Segment[], level: number, parent: Json, parentKey: Segment | undefined, last: boolean) => {
+    // `shown` is true under a match, where the tree no longer filters, so a matched object shows what is in it.
+    const walk = (key: Segment, value: Json, path: Segment[], level: number, parent: Json, parentKey: Segment | undefined, last: boolean, block: number, shown: boolean) => {
       const keyString = pathKey(path);
-      if (searching && !this.#keep.has(keyString)) {
+      if (searching && !shown && !this.#keep.has(keyString)) {
         line += lineCount(value);
         return;
       }
       const change = this.changes?.get(keyString);
       // In diff style a changed value is a published line taken away and a draft line added.
       const asLines = change?.kind === "changed" && this.changeStyle === "diff" && !isContainer(value);
-      const hit = (searching && matches(key, value, this.query.trim())) || (this.#jump && keyString === pathKey(this.#jump));
+      const hit = searching && this.#hitKeys.has(keyString);
       const classes = ["row", asLines ? "added" : change?.kind ?? "", hit ? "hit" : "", keyString === current ? "current" : ""].join(" ");
       const keyLabel = typeof key === "number"
         ? html`<span class="index">${key}</span><span class="punct colon">:</span>`
@@ -257,11 +285,11 @@ export class JsonTreeElement extends LitElement {
 
       if (!isContainer(value)) {
         if (asLines) {
-          rows.push(html`<div class="row removed" role="treeitem" aria-level=${level} aria-label="Published" style="--level:${level}">
+          rows.push(html`<div class="row removed" role="treeitem" aria-level=${level} aria-label="Published" data-block=${block} style="--level:${level}">
             ${lead(undefined)}<span class="code">${keyLabel}<span class="before">${preview(change.before)}</span>${comma(last)}</span>
           </div>`);
         }
-        rows.push(html`<div class=${classes} data-path=${keyString} role="treeitem" aria-level=${level} tabindex="-1" style="--level:${level}"
+        rows.push(html`<div class=${classes} data-path=${keyString} data-block=${block} role="treeitem" aria-level=${level} tabindex="-1" style="--level:${level}"
           @mouseenter=${isImageUrl(parent, key, value) ? (event: MouseEvent) => this.#showThumb(event, keyString, parent, value) : nothing}
           @mouseleave=${isImageUrl(parent, key, value) ? () => (this._thumb = undefined) : nothing}>
           ${lead(line++)}<span class="code">${keyLabel}${before}${this.#value(key, value, path, parent, parentKey)}${comma(last)}${copy(key, value)}</span>
@@ -280,8 +308,7 @@ export class JsonTreeElement extends LitElement {
         ? html`<button type="button" class="chevron" data-open=${String(open)} tabindex="-1" aria-label=${open ? "Close" : "Open"} title="Alt-click opens or closes everything inside" @click=${toggle}>
             <svg viewBox="0 0 10 10" aria-hidden="true"><path d="M3.5 2l3 3-3 3" /></svg></button>`
         : nothing;
-      rows.push(html`<div class=${classes} data-path=${keyString} role="treeitem" aria-level=${level} aria-expanded=${entries.length ? String(open) : nothing} tabindex="-1" style="--level:${level}"
-        @mouseenter=${() => this.#pair(pair)} @mouseleave=${() => this.#pair(undefined)}>
+      rows.push(html`<div class=${classes} data-path=${keyString} data-block=${pair} data-open=${pair} data-level=${level} role="treeitem" aria-level=${level} aria-expanded=${entries.length ? String(open) : nothing} tabindex="-1" style="--level:${level}">
         ${lead(line, fold)}<span class="code">${entries.length ? html`<span class="toggle" @click=${toggle}>${keyLabel}</span>` : keyLabel}${before}<span class=${entries.length ? "toggle" : ""} @click=${entries.length ? toggle : nothing}>${bracket(start, level, pair)}${open ? nothing : html`${entries.length ? html`<span class="ellipsis" data-text="…"></span>` : nothing}${bracket(end, level, pair)}`}</span>${open ? nothing : comma(last)}${count}${tag}${entries.length ? copy(key, value) : nothing}</span>
       </div>`);
       if (!open) {
@@ -289,13 +316,13 @@ export class JsonTreeElement extends LitElement {
         return;
       }
       line++;
-      entries.forEach(([childKey, child], index) => walk(childKey, child, [...path, childKey], level + 1, value, key, index === entries.length - 1));
+      entries.forEach(([childKey, child], index) => walk(childKey, child, [...path, childKey], level + 1, value, key, index === entries.length - 1, pair, shown || hit));
       for (const [removedKey, removed] of this.#removedByParent.get(keyString) ?? []) {
-        rows.push(html`<div class="row removed" role="treeitem" aria-level=${level + 1} style="--level:${level + 1}">
+        rows.push(html`<div class="row removed" role="treeitem" aria-level=${level + 1} data-block=${pair} style="--level:${level + 1}">
           ${lead(undefined)}<span class="code"><span class="key">${typeof removedKey === "number" ? removedKey : JSON.stringify(removedKey)}</span><span class="punct colon">:</span><span class="before">${preview(removed.before)}</span><span class="meta" data-text="Only in published"></span></span>
         </div>`);
       }
-      rows.push(html`<div class="row close" aria-hidden="true" style="--level:${level}" @mouseenter=${() => this.#pair(pair)} @mouseleave=${() => this.#pair(undefined)}>
+      rows.push(html`<div class="row close" aria-hidden="true" data-block=${pair} data-close=${pair} style="--level:${level}">
         ${lead(line++)}<span class="code">${bracket(end, level, pair)}${comma(last)}</span></div>`);
     };
 
@@ -303,14 +330,14 @@ export class JsonTreeElement extends LitElement {
     const [rootStart, rootEnd] = brackets(this.data);
     const total = lineCount(this.data);
     const rootPair = ++pairs;
-    rows.push(html`<div class="row root" aria-hidden="true" style="--level:0" @mouseenter=${() => this.#pair(rootPair)} @mouseleave=${() => this.#pair(undefined)}>
+    rows.push(html`<div class="row root" aria-hidden="true" data-block=${rootPair} data-open=${rootPair} data-level="0" style="--level:0">
       ${lead(line++)}<span class="code">${bracket(rootStart, 0, rootPair)}</span></div>`);
     const top = children(this.data);
-    top.forEach(([key, child], index) => walk(key, child, [key], 1, this.data, undefined, index === top.length - 1));
+    top.forEach(([key, child], index) => walk(key, child, [key], 1, this.data, undefined, index === top.length - 1, rootPair, false));
     for (const [removedKey, removed] of this.#removedByParent.get(pathKey([])) ?? []) {
-      rows.push(html`<div class="row removed" style="--level:1">${lead(undefined)}<span class="code"><span class="key">${JSON.stringify(removedKey)}</span><span class="punct colon">:</span><span class="before">${preview(removed.before)}</span><span class="meta" data-text="Only in published"></span></span></div>`);
+      rows.push(html`<div class="row removed" data-block=${rootPair} style="--level:1">${lead(undefined)}<span class="code"><span class="key">${JSON.stringify(removedKey)}</span><span class="punct colon">:</span><span class="before">${preview(removed.before)}</span><span class="meta" data-text="Only in published"></span></span></div>`);
     }
-    rows.push(html`<div class="row root" aria-hidden="true" style="--level:0" @mouseenter=${() => this.#pair(rootPair)} @mouseleave=${() => this.#pair(undefined)}>
+    rows.push(html`<div class="row root" aria-hidden="true" data-block=${rootPair} data-close=${rootPair} style="--level:0">
       ${lead(total)}<span class="code">${bracket(rootEnd, 0, rootPair)}</span></div>`);
     if (searching && !this.#hits.length) {
       return html`<p class="empty">Nothing matches “${this.query.trim()}”.</p>`;
@@ -320,7 +347,8 @@ export class JsonTreeElement extends LitElement {
       : nothing;
     return html`${thumb}<style class="pair"></style><div class=${this.changes?.size ? "tree diff" : "tree"} role="tree" aria-label="Delivery API response"
       style="--ln:${String(total).length}ch" @keydown=${this.#onKeydown}
-      @focusin=${(event: FocusEvent) => (event.target as HTMLElement).setAttribute("tabindex", "0")}
+      @mouseover=${this.#onPoint} @mouseleave=${() => this.#light(undefined)}
+      @focusin=${(event: FocusEvent) => { (event.target as HTMLElement).setAttribute("tabindex", "0"); this.#onPoint(event); }}
       @focusout=${(event: FocusEvent) => (event.target as HTMLElement).setAttribute("tabindex", "-1")}>
       ${rows}
     </div>`;
@@ -341,7 +369,7 @@ export class JsonTreeElement extends LitElement {
   }
 
   #highlight(text: string) {
-    const query = this.#jump ? "" : this.query.trim();
+    const query = this.query.trim();
     const at = query ? text.toLowerCase().indexOf(query.toLowerCase()) : -1;
     if (at < 0) return text;
     return html`${text.slice(0, at)}<mark>${text.slice(at, at + query.length)}</mark>${text.slice(at + query.length)}`;
@@ -361,8 +389,6 @@ export class JsonTreeElement extends LitElement {
       --json-b2: #7b3814;
       --json-ln: #237893;
       --json-guide: #d3d3d3;
-      --json-pair: rgb(0 100 0 / 0.1);
-      --json-pair-border: #b9b9b9;
       --json-line: #eeeeee;
       --json-badge: color-mix(in srgb, var(--uui-color-text, #000) 8%, transparent);
       --json-added: color-mix(in srgb, var(--uui-color-positive, #0b8152) 14%, transparent);
@@ -384,8 +410,6 @@ export class JsonTreeElement extends LitElement {
       --json-b2: #179fff;
       --json-ln: #858585;
       --json-guide: #404040;
-      --json-pair: rgb(0 100 0 / 0.1);
-      --json-pair-border: #888888;
       --json-line: #282828;
     }
     /* The tab's panel scrolls the tree both ways; rows stretch to the widest one so highlights span
@@ -436,7 +460,8 @@ export class JsonTreeElement extends LitElement {
       display: flex;
       align-items: baseline;
       padding-left: calc(var(--level) * 2ch);
-      background-image: repeating-linear-gradient(to right, var(--json-guide) 0 1px, transparent 1px 2ch);
+      --json-guides: repeating-linear-gradient(to right, var(--json-guide) 0 1px, transparent 1px 2ch);
+      background-image: var(--json-guides);
       background-size: calc(var(--level) * 2ch) 100%;
       background-repeat: no-repeat;
       align-self: stretch;

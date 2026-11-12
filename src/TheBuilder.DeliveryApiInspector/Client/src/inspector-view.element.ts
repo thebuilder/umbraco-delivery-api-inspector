@@ -423,7 +423,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
         <div class="find">
               <label class="search-field">
                 <uui-icon name="icon-search"></uui-icon>
-                <input class="search" type="text" role="searchbox" aria-label="Search keys and values" placeholder="Search keys and values, or type a path like properties.image[0].url"
+                <input class="search" type="text" role="searchbox" aria-label="Search keys, values and paths" placeholder="Search keys, values or a path like properties.image[0].url"
                   .value=${this._query} @input=${(event: InputEvent) => (this._query = (event.target as HTMLInputElement).value)}
                   @keydown=${(event: KeyboardEvent) => {
                     if (event.key === "Enter") { event.preventDefault(); this.shadowRoot?.querySelector("thebuilder-json-tree")?.next(event.shiftKey ? -1 : 1); }
@@ -453,7 +453,6 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
 
   #hitsLabel() {
     if (!this._query.trim() || !this._hits) return nothing;
-    if (this._hits.path) return "Path";
     return this._hits.count ? `${this._hits.index + 1} of ${this._hits.count}` : "No matches";
   }
 
