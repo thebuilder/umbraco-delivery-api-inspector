@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diff, formatPath, getAt, guidKind, isImageUrl, parsePath, pathKey, search, type Json } from "../src/json.js";
+import { diff, formatPath, guidKind, isImageUrl, pathKey, search, type Json } from "../src/json.js";
 
 // A trimmed Delivery API response for a home page, as Umbraco 17 returns it.
 const home: Json = {
@@ -22,20 +22,6 @@ describe("paths", () => {
     expect(formatPath(["properties", "image", 0, "url"])).toBe("properties.image[0].url");
     expect(formatPath(["cultures", "en-us", "path"])).toBe('cultures["en-us"].path');
   });
-
-  it("reads a typed path back, with or without a leading data.", () => {
-    expect(parsePath("properties.image[0].url")).toEqual(["properties", "image", 0, "url"]);
-    expect(parsePath('data.cultures["en-us"].path')).toEqual(["cultures", "en-us", "path"]);
-    expect(parsePath("Really cool")).toBeUndefined();
-    expect(parsePath("image]")).toBeUndefined();
-  });
-
-  it("finds the value at a path, and nothing past a leaf or a missing key", () => {
-    expect(getAt(home, ["properties", "image", 0, "name"])).toBe("Dark Blue");
-    expect(getAt(home, ["properties", "title", "length"])).toBeUndefined();
-    expect(getAt(home, ["properties", "missing"])).toBeUndefined();
-    expect(getAt(home, ["properties", "image", "0"])).toBeUndefined();
-  });
 });
 
 describe("search", () => {
@@ -49,6 +35,25 @@ describe("search", () => {
 
   it("matches values without regard to case", () => {
     expect(search(home, "DARK").hits.map(formatPath)).toEqual(["properties.image[0].name", "properties.image[0].url"]);
+  });
+
+  it("finds a partly typed path at the topmost row on it, not at every row under it", () => {
+    expect(search(home, "properties.ima").hits.map(formatPath)).toEqual(["properties.image"]);
+    expect(search(home, "image[0].u").hits.map(formatPath)).toEqual(["properties.image[0].url"]);
+  });
+
+  it("reads a path pasted from code, with data. in front", () => {
+    expect(search(home, 'data.cultures["en-us"]').hits.map(formatPath)).toEqual(['cultures["en-us"]']);
+  });
+
+  it("keeps the rows above a path match open, and not the rows under it", () => {
+    expect(search(home, "properties.ima").keep).toEqual(new Set([[], ["properties"], ["properties", "image"]].map(pathKey)));
+  });
+
+  it("finds a path that is not open in the tree", () => {
+    const deep: Json = { properties: { related: [{ name: "About", properties: { related: [] } }] } };
+    expect(search(deep, "properties.related").hits.map(formatPath)).toEqual(["properties.related"]);
+    expect(search(deep, "related[0].properties.rel").hits.map(formatPath)).toEqual(["properties.related[0].properties.related"]);
   });
 
   it("finds nothing for an empty query", () => {

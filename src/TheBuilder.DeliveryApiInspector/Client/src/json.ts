@@ -23,53 +23,6 @@ export function formatPath(segments: readonly Segment[]): string {
 /** The path's key for maps and sets: unambiguous, unlike the formatted path. */
 export const pathKey = (segments: readonly Segment[]): string => JSON.stringify(segments);
 
-/**
- * Reads a typed path back into segments, or undefined when it is not path-shaped. Accepts what
- * formatPath writes and a leading `data.` or `$.`, so a path pasted from code works.
- */
-export function parsePath(text: string): Segment[] | undefined {
-  let rest = text.trim().replace(/^(data|\$)(?=[.[])/, "").replace(/^\./, "");
-  if (!rest) {
-    return undefined;
-  }
-  const segments: Segment[] = [];
-  while (rest) {
-    let match: RegExpMatchArray | null;
-    if ((match = rest.match(/^\[(\d+)\]/))) {
-      segments.push(Number(match[1]));
-    } else if ((match = rest.match(/^\[("(?:[^"\\]|\\.)*")\]/))) {
-      segments.push(JSON.parse(match[1]) as string);
-    } else if ((match = rest.match(/^\.?([A-Za-z_$][\w$-]*)/)) && (segments.length === 0 || rest.startsWith("."))) {
-      segments.push(match[1]);
-    } else {
-      return undefined;
-    }
-    rest = rest.slice(match[0].length);
-  }
-  return segments;
-}
-
-export function getAt(value: Json, segments: readonly Segment[]): Json | undefined {
-  let current: Json | undefined = value;
-  for (const segment of segments) {
-    if (current === null || typeof current !== "object") {
-      return undefined;
-    }
-    if (Array.isArray(current)) {
-      if (typeof segment !== "number") {
-        return undefined;
-      }
-      current = current[segment];
-    } else {
-      if (typeof segment !== "string" || !Object.hasOwn(current, segment)) {
-        return undefined;
-      }
-      current = current[segment];
-    }
-  }
-  return current;
-}
-
 export const isContainer = (value: Json | undefined): value is Json[] | { [key: string]: Json } =>
   value !== null && typeof value === "object";
 
@@ -90,20 +43,24 @@ export function matches(key: Segment | null, value: Json, query: string): boolea
 }
 
 /**
- * Every path whose key or value matches, in document order, and the set of their ancestors, which
- * is what a filtered tree keeps open.
+ * Every row that matches, in document order, and the set of rows a filtered tree keeps open: each
+ * match and its ancestors. A row matches on its key or its leaf value, or, when the query looks like
+ * a path (it has a . or a [), on its path as formatPath writes it, so properties.rel finds
+ * properties.related. Only the topmost row on a matching path counts, not everything under it.
  */
 export function search(root: Json, query: string): { hits: Segment[][]; keep: Set<string> } {
   const hits: Segment[][] = [];
   const keep = new Set<string>();
-  const walk = (key: Segment | null, value: Json, path: Segment[]): boolean => {
-    let found = key !== null && matches(key, value, query);
+  const needle = /[.[]/.test(query) ? query.replace(/^(data|\$)(?=[.[])/, "").replace(/^\./, "").toLowerCase() : undefined;
+  const walk = (key: Segment | null, value: Json, path: Segment[], parentOnPath: boolean): boolean => {
+    const onPath = !!needle && key !== null && formatPath(path).toLowerCase().includes(needle);
+    let found = key !== null && ((onPath && !parentOnPath) || matches(key, value, query));
     if (found) {
       hits.push(path);
     }
     if (isContainer(value)) {
       for (const [childKey, child] of children(value)) {
-        if (walk(childKey, child, [...path, childKey])) {
+        if (walk(childKey, child, [...path, childKey], onPath)) {
           found = true;
         }
       }
@@ -114,7 +71,7 @@ export function search(root: Json, query: string): { hits: Segment[][]; keep: Se
     return found;
   };
   if (query) {
-    walk(null, root, []);
+    walk(null, root, [], false);
   }
   return { hits, keep };
 }
