@@ -9,7 +9,7 @@
   with the JSON the Delivery API returns for it.
 </p>
 
-[![NuGet version](https://img.shields.io/nuget/vpre/TheBuilder.DeliveryApiInspector)](https://www.nuget.org/packages/TheBuilder.DeliveryApiInspector)
+[![NuGet version](https://img.shields.io/nuget/v/TheBuilder.DeliveryApiInspector)](https://www.nuget.org/packages/TheBuilder.DeliveryApiInspector)
 [![Umbraco Marketplace](https://img.shields.io/badge/Umbraco-Marketplace-3544b1)](https://marketplace.umbraco.com/package/thebuilder.deliveryapiinspector)
 [![License](https://img.shields.io/github/license/thebuilder/umbraco-delivery-api-inspector)](https://github.com/thebuilder/umbraco-delivery-api-inspector/blob/main/LICENSE)
 
@@ -26,14 +26,14 @@ The response is a tree you can search and filter, open to a set depth, and reque
 hover, and a GUID opens its document or media item. The request copies as a URL, a curl command or a
 `fetch` call, and the response, or any part of it, copies as JSON.
 
-The package is a preview. It supports Umbraco 17.4 and later, Umbraco 18 included, on .NET 10.
+It supports Umbraco 17.4 and later, Umbraco 18 included, on .NET 10.
 
 ## Getting started
 
 1. Install the package in your Umbraco site:
 
    ```sh
-   dotnet add package TheBuilder.DeliveryApiInspector --prerelease
+   dotnet add package TheBuilder.DeliveryApiInspector
    ```
 
 2. Make sure `Program.cs` calls `AddDeliveryApi()`. The public Delivery API does not have to be
