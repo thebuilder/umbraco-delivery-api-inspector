@@ -1,1 +1,19 @@
 #nullable enable
+TheBuilder.DeliveryApiInspector.Composition.DeliveryApiInspectorComposer
+TheBuilder.DeliveryApiInspector.Composition.DeliveryApiInspectorComposer.Compose(Umbraco.Cms.Core.DependencyInjection.IUmbracoBuilder! builder) -> void
+TheBuilder.DeliveryApiInspector.Composition.DeliveryApiInspectorComposer.DeliveryApiInspectorComposer() -> void
+TheBuilder.DeliveryApiInspector.Configuration.DeliveryApiInspectorOptions
+TheBuilder.DeliveryApiInspector.Configuration.DeliveryApiInspectorOptions.DeliveryApiInspectorOptions() -> void
+TheBuilder.DeliveryApiInspector.Configuration.DeliveryApiInspectorOptions.Enabled.get -> bool
+TheBuilder.DeliveryApiInspector.Configuration.DeliveryApiInspectorOptions.Enabled.set -> void
+TheBuilder.DeliveryApiInspector.Configuration.DeliveryApiInspectorOptions.Media.get -> bool
+TheBuilder.DeliveryApiInspector.Configuration.DeliveryApiInspectorOptions.Media.set -> void
+TheBuilder.DeliveryApiInspector.Configuration.DeliveryApiInspectorOptions.UserGroups.get -> System.Collections.Generic.IList<string!>!
+TheBuilder.DeliveryApiInspector.Configuration.DeliveryApiInspectorOptions.UserGroups.set -> void
+TheBuilder.DeliveryApiInspector.ManagementApi.InspectorController
+TheBuilder.DeliveryApiInspector.ManagementApi.InspectorController.Config() -> Microsoft.AspNetCore.Mvc.IActionResult!
+TheBuilder.DeliveryApiInspector.ManagementApi.InspectorController.Content(System.Guid id, bool preview = true, string? culture = null, string? segment = null) -> System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.IActionResult!>!
+TheBuilder.DeliveryApiInspector.ManagementApi.InspectorController.ContentAccess(System.Guid id) -> System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.IActionResult!>!
+TheBuilder.DeliveryApiInspector.ManagementApi.InspectorController.InspectorController(Umbraco.Cms.Core.Security.IBackOfficeSecurityAccessor! securityAccessor, Microsoft.Extensions.Options.IOptionsMonitor<TheBuilder.DeliveryApiInspector.Configuration.DeliveryApiInspectorOptions!>! options, Microsoft.Extensions.Options.IOptionsMonitor<Umbraco.Cms.Core.Configuration.Models.DeliveryApiSettings!>! deliveryApiSettings, Umbraco.Cms.Core.Models.PublishedContent.IVariationContextAccessor! variationContextAccessor, Microsoft.Extensions.Options.IOptionsMonitor<Microsoft.AspNetCore.Mvc.JsonOptions!>! jsonOptions, Microsoft.Extensions.Logging.ILogger<TheBuilder.DeliveryApiInspector.ManagementApi.InspectorController!>! logger) -> void
+TheBuilder.DeliveryApiInspector.ManagementApi.InspectorController.Media(System.Guid id) -> System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.IActionResult!>!
+const TheBuilder.DeliveryApiInspector.Configuration.DeliveryApiInspectorOptions.SectionName = "DeliveryApiInspector" -> string!
