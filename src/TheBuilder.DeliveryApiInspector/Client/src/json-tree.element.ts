@@ -213,8 +213,8 @@ export class JsonTreeElement extends LitElement {
   }
 
   /**
-   * Lights up one block as an editor's bracket pair guides do: its brackets bold, and the indent
-   * guide that runs down its contents in the brackets' colour. Done with one style rule, so the
+   * Lights up one block as an editor's bracket pair guides do: its brackets heavier (a stroke, so
+   * nothing moves as bold would), and the indent guide down its contents in a soft bracket colour. Done with one style rule, so the
    * tree does not draw again as the pointer moves.
    */
   #light(id: number | undefined): void {
@@ -225,7 +225,7 @@ export class JsonTreeElement extends LitElement {
       style.textContent = "";
       return;
     }
-    let rules = `.bracket[data-pair="${id}"] { font-weight: 700; }`;
+    let rules = `.bracket[data-pair="${id}"] { -webkit-text-stroke: 0.4px currentColor; }`;
     const tree = this.renderRoot.querySelector(".tree");
     const open = this.renderRoot.querySelector<HTMLElement>(`.row[data-open="${id}"]`);
     const close = this.renderRoot.querySelector(`.row[data-close="${id}"]`);
@@ -236,7 +236,7 @@ export class JsonTreeElement extends LitElement {
       const last = rows.indexOf(close);
       const level = Number(open.dataset.level);
       if (last >= first) {
-        rules += ` .tree > .row:nth-child(n+${first}):nth-child(-n+${last}) > .code { --active: var(--json-b${level % 3}); --active-at: ${level}; }`;
+        rules += ` .tree > .row:nth-child(n+${first}):nth-child(-n+${last}) > .code { --active: color-mix(in srgb, var(--json-b${level % 3}) var(--json-active-mix), transparent); --active-at: ${level}; }`;
       }
     }
     style.textContent = rules;
@@ -385,6 +385,7 @@ export class JsonTreeElement extends LitElement {
       --json-b2: #7b3814;
       --json-ln: #237893;
       --json-guide: #d3d3d3;
+      --json-active-mix: 50%;
       --json-line: #eeeeee;
       --json-badge: color-mix(in srgb, var(--uui-color-text, #000) 8%, transparent);
       --json-added: color-mix(in srgb, var(--uui-color-positive, #0b8152) 14%, transparent);
@@ -406,6 +407,7 @@ export class JsonTreeElement extends LitElement {
       --json-b2: #179fff;
       --json-ln: #858585;
       --json-guide: #404040;
+      --json-active-mix: 40%;
       --json-line: #282828;
     }
     /* The tab's panel scrolls the tree both ways; rows stretch to the widest one so highlights span
