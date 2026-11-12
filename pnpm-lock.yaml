@@ -31,6 +31,9 @@ importers:
       sharp:
         specifier: ^0.35.5
         version: 0.35.5(@types/node@26.6.6)
+      thebuilder-delivery-api-inspector:
+        specifier: workspace:*
+        version: link:../../src/TheBuilder.DeliveryApiInspector/Client
 
   src/TheBuilder.DeliveryApiInspector/Client:
     devDependencies:
