@@ -4,7 +4,7 @@ export const inspectorPackage = defineUmbracoPackage({
   id: "thebuilder.deliveryapiinspector",
   name: "Delivery API Inspector",
   summary:
-    "An API tab on every document and media item in the Umbraco backoffice, showing exactly what the Delivery API returns for it.",
+    "Adds an API tab to every document and media item in the backoffice, with the JSON the Delivery API returns for it.",
   links: {
     docs: "https://delivery-api-inspector.thebuilder.dk",
     nuget: "https://www.nuget.org/packages/TheBuilder.DeliveryApiInspector",
@@ -13,6 +13,6 @@ export const inspectorPackage = defineUmbracoPackage({
   },
   logo: "/logo-mark.svg",
   compatibility: { umbraco: ">=17.4 <19", dotnet: ">=10" },
-  status: "preview",
+  status: "stable",
   categories: ["Headless", "Developer Tools"],
 });
