@@ -236,11 +236,7 @@ export class JsonTreeElement extends LitElement {
       const last = rows.indexOf(close);
       const level = Number(open.dataset.level);
       if (last >= first) {
-        rules += ` .tree > .row:nth-child(n+${first}):nth-child(-n+${last}) > .code {
-          background-image: linear-gradient(var(--json-b${level % 3}), var(--json-b${level % 3})), var(--json-guides);
-          background-size: 1px 100%, calc(var(--level) * 2ch) 100%;
-          background-position: calc(${level} * 2ch) 0, 0 0;
-        }`;
+        rules += ` .tree > .row:nth-child(n+${first}):nth-child(-n+${last}) > .code { --active: var(--json-b${level % 3}); --active-at: ${level}; }`;
       }
     }
     style.textContent = rules;
@@ -285,11 +281,11 @@ export class JsonTreeElement extends LitElement {
 
       if (!isContainer(value)) {
         if (asLines) {
-          rows.push(html`<div class="row removed" role="treeitem" aria-level=${level} aria-label="Published" data-block=${block} style="--level:${level}">
+          rows.push(html`<div class="row removed" role="treeitem" aria-level=${level} aria-label="Published" data-block=${block} style=${indent(level)}>
             ${lead(undefined)}<span class="code">${keyLabel}<span class="before">${preview(change.before)}</span>${comma(last)}</span>
           </div>`);
         }
-        rows.push(html`<div class=${classes} data-path=${keyString} data-block=${block} role="treeitem" aria-level=${level} tabindex="-1" style="--level:${level}"
+        rows.push(html`<div class=${classes} data-path=${keyString} data-block=${block} role="treeitem" aria-level=${level} tabindex="-1" style=${indent(level)}
           @mouseenter=${isImageUrl(parent, key, value) ? (event: MouseEvent) => this.#showThumb(event, keyString, parent, value) : nothing}
           @mouseleave=${isImageUrl(parent, key, value) ? () => (this._thumb = undefined) : nothing}>
           ${lead(line++)}<span class="code">${keyLabel}${before}${this.#value(key, value, path, parent, parentKey)}${comma(last)}${copy(key, value)}</span>
@@ -308,7 +304,7 @@ export class JsonTreeElement extends LitElement {
         ? html`<button type="button" class="chevron" data-open=${String(open)} tabindex="-1" aria-label=${open ? "Close" : "Open"} title="Alt-click opens or closes everything inside" @click=${toggle}>
             <svg viewBox="0 0 10 10" aria-hidden="true"><path d="M3.5 2l3 3-3 3" /></svg></button>`
         : nothing;
-      rows.push(html`<div class=${classes} data-path=${keyString} data-block=${pair} data-open=${pair} data-level=${level} role="treeitem" aria-level=${level} aria-expanded=${entries.length ? String(open) : nothing} tabindex="-1" style="--level:${level}">
+      rows.push(html`<div class=${classes} data-path=${keyString} data-block=${pair} data-open=${pair} data-level=${level} role="treeitem" aria-level=${level} aria-expanded=${entries.length ? String(open) : nothing} tabindex="-1" style=${indent(level)}>
         ${lead(line, fold)}<span class="code">${entries.length ? html`<span class="toggle" @click=${toggle}>${keyLabel}</span>` : keyLabel}${before}<span class=${entries.length ? "toggle" : ""} @click=${entries.length ? toggle : nothing}>${bracket(start, level, pair)}${open ? nothing : html`${entries.length ? html`<span class="ellipsis" data-text="…"></span>` : nothing}${bracket(end, level, pair)}`}</span>${open ? nothing : comma(last)}${count}${tag}${entries.length ? copy(key, value) : nothing}</span>
       </div>`);
       if (!open) {
@@ -318,11 +314,11 @@ export class JsonTreeElement extends LitElement {
       line++;
       entries.forEach(([childKey, child], index) => walk(childKey, child, [...path, childKey], level + 1, value, key, index === entries.length - 1, pair, shown || hit));
       for (const [removedKey, removed] of this.#removedByParent.get(keyString) ?? []) {
-        rows.push(html`<div class="row removed" role="treeitem" aria-level=${level + 1} data-block=${pair} style="--level:${level + 1}">
+        rows.push(html`<div class="row removed" role="treeitem" aria-level=${level + 1} data-block=${pair} style=${indent(level + 1)}>
           ${lead(undefined)}<span class="code"><span class="key">${typeof removedKey === "number" ? removedKey : JSON.stringify(removedKey)}</span><span class="punct colon">:</span><span class="before">${preview(removed.before)}</span><span class="meta" data-text="Only in published"></span></span>
         </div>`);
       }
-      rows.push(html`<div class="row close" aria-hidden="true" data-block=${pair} data-close=${pair} style="--level:${level}">
+      rows.push(html`<div class="row close" aria-hidden="true" data-block=${pair} data-close=${pair} style=${indent(level)}>
         ${lead(line++)}<span class="code">${bracket(end, level, pair)}${comma(last)}</span></div>`);
     };
 
@@ -330,14 +326,14 @@ export class JsonTreeElement extends LitElement {
     const [rootStart, rootEnd] = brackets(this.data);
     const total = lineCount(this.data);
     const rootPair = ++pairs;
-    rows.push(html`<div class="row root" aria-hidden="true" data-block=${rootPair} data-open=${rootPair} data-level="0" style="--level:0">
+    rows.push(html`<div class="row root" aria-hidden="true" data-block=${rootPair} data-open=${rootPair} data-level="0" style=${indent(0)}>
       ${lead(line++)}<span class="code">${bracket(rootStart, 0, rootPair)}</span></div>`);
     const top = children(this.data);
     top.forEach(([key, child], index) => walk(key, child, [key], 1, this.data, undefined, index === top.length - 1, rootPair, false));
     for (const [removedKey, removed] of this.#removedByParent.get(pathKey([])) ?? []) {
-      rows.push(html`<div class="row removed" data-block=${rootPair} style="--level:1">${lead(undefined)}<span class="code"><span class="key">${JSON.stringify(removedKey)}</span><span class="punct colon">:</span><span class="before">${preview(removed.before)}</span><span class="meta" data-text="Only in published"></span></span></div>`);
+      rows.push(html`<div class="row removed" data-block=${rootPair} style=${indent(1)}>${lead(undefined)}<span class="code"><span class="key">${JSON.stringify(removedKey)}</span><span class="punct colon">:</span><span class="before">${preview(removed.before)}</span><span class="meta" data-text="Only in published"></span></span></div>`);
     }
-    rows.push(html`<div class="row root" aria-hidden="true" data-block=${rootPair} data-close=${rootPair} style="--level:0">
+    rows.push(html`<div class="row root" aria-hidden="true" data-block=${rootPair} data-close=${rootPair} style=${indent(0)}>
       ${lead(total)}<span class="code">${bracket(rootEnd, 0, rootPair)}</span></div>`);
     if (searching && !this.#hits.length) {
       return html`<p class="empty">Nothing matches “${this.query.trim()}”.</p>`;
@@ -460,9 +456,11 @@ export class JsonTreeElement extends LitElement {
       display: flex;
       align-items: baseline;
       padding-left: calc(var(--level) * 2ch);
-      --json-guides: repeating-linear-gradient(to right, var(--json-guide) 0 1px, transparent 1px 2ch);
-      background-image: var(--json-guides);
-      background-size: calc(var(--level) * 2ch) 100%;
+      /* One 1px layer a guide, set per row by indent(), each placed on its own rather than repeated,
+         so rounding cannot add up with depth. The first layer is the lit block's guide. */
+      background-image: linear-gradient(var(--active, transparent), var(--active, transparent)), var(--guides, none);
+      background-position: round(down, calc(var(--active-at, 0) * 2ch + 0.5ch), 1px) 0, var(--guide-at, 0 0);
+      background-size: 1px 100%;
       background-repeat: no-repeat;
       align-self: stretch;
     }
@@ -604,6 +602,22 @@ export class JsonTreeElement extends LitElement {
 }
 
 /** How many lines a value takes in JSON formatted with two-space indents. */
+/**
+ * A row's indent and its guides: one line a level, down the middle of the column each enclosing
+ * block opens in, under its bracket or its key's opening quote, as an editor draws them.
+ */
+const indents: string[] = [];
+const indent = (level: number): string => {
+  if (indents[level] === undefined) {
+    const guide = "linear-gradient(var(--json-guide), var(--json-guide))";
+    const at = Array.from({ length: level }, (_, column) => `round(down, calc(${column} * 2ch + 0.5ch), 1px) 0`);
+    indents[level] = level
+      ? `--level:${level};--guides:${Array(level).fill(guide).join(",")};--guide-at:${at.join(",")}`
+      : "--level:0";
+  }
+  return indents[level];
+};
+
 const lineCounts = new WeakMap<object, number>();
 const lineCount = (value: Json): number => {
   if (!isContainer(value)) return 1;
