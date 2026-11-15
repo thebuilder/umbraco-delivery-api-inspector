@@ -10,7 +10,7 @@ import { UmbTextStyles } from "@umbraco-cms/backoffice/style";
 import { UMB_THEME_CONTEXT } from "@umbraco-cms/backoffice/themes";
 import { api, backofficeOrigin, InspectorError, type InspectorConfig, type InspectorResponse } from "./api.js";
 import { diff, isContainer, type Change, type Json } from "./json.js";
-import type { TreeHits } from "./json-tree.element.js";
+import type { TreeFold, TreeHits } from "./json-tree.element.js";
 import "./json-tree.element.js";
 import { buildRequest, fitUrl, fullUrl, propertiesParam, toCurl, toFetch, type DeliveryRequest, type ItemType, type UrlParts } from "./request.js";
 
@@ -55,6 +55,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
   @state() private _changeStyle: "diff" | "inline" = "diff";
   @state() private _query = "";
   @state() private _hits?: TreeHits;
+  @state() private _fold?: TreeFold;
 
   @state() private _response?: InspectorResponse;
   @state() private _changes?: Map<string, Change>;
@@ -428,10 +429,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
                 <span class="hits">${this.#hitsLabel()}</span>
                 ${this._query ? html`<button type="button" class="clear" aria-label="Clear search" title="Clear search" @click=${(event: Event) => { event.preventDefault(); this._query = ""; this.shadowRoot?.querySelector<HTMLInputElement>("input.search")?.focus(); }}></button>` : nothing}
               </label>
-              <div class="fold" role="group" aria-label="Fold">
-                <button type="button" class="copy-button" title="Open every row" @click=${() => this.shadowRoot?.querySelector("thebuilder-json-tree")?.expandAll()}><span class="t">Expand all</span></button>
-                <button type="button" class="copy-button" title="Close every row to the top-level keys" @click=${() => this.shadowRoot?.querySelector("thebuilder-json-tree")?.collapseAll()}><span class="t">Collapse all</span></button>
-              </div>
+              ${this.#foldButton()}
             </div>
         <div class="body">${this.#body()}</div>
       </section>
@@ -447,6 +445,20 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
     if (!response) return 99;
     const large = response.bytes > 200 * 1024 || JSON.stringify(response.data, null, 2).split("\n").length > 1000;
     return large ? 2 : 99;
+  }
+
+  /**
+   * One button that does what the tree in view needs: Expand all while any shown row is closed,
+   * Collapse all once every shown row is open. It reads the drawn tree, so it follows rows opened by
+   * hand and the rows a search shows.
+   */
+  #foldButton() {
+    if (!this._fold || this._error || !this._response) return nothing;
+    const tree = () => this.shadowRoot?.querySelector("thebuilder-json-tree");
+    if (this._fold === "none") return html`<button type="button" class="copy-button fold" disabled title="Every row in view is open, and each is on the path to a match"><span class="t">Collapse all</span></button>`;
+    return this._fold === "expand"
+      ? html`<button type="button" class="copy-button fold" title=${this._query.trim() ? "Open every row the search shows" : "Open every row"} @click=${() => tree()?.expandAll()}><span class="t">Expand all</span></button>`
+      : html`<button type="button" class="copy-button fold" title=${this._query.trim() ? "Close to the path down to each match" : "Close every row to the top-level keys"} @click=${() => tree()?.collapseAll()}><span class="t">Collapse all</span></button>`;
   }
 
   #hitsLabel() {
@@ -465,6 +477,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       .depth=${this.#levels} .query=${this._query} changeStyle=${this._changeStyle}
       .types=${{ document: this._config?.documentTypes ?? null, media: this._config?.mediaTypes ?? null }}
       @hits=${(event: CustomEvent<TreeHits>) => (this._hits = event.detail)}
+      @fold=${(event: CustomEvent<TreeFold>) => (this._fold = event.detail)}
       @copied=${(event: CustomEvent<string>) => this.#notification?.peek("positive", { data: { message: event.detail } })}></thebuilder-json-tree>`;
   }
 
@@ -948,10 +961,15 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       .copy-button:hover {
         background: var(--inspector-track);
       }
-      /* Expand all and Collapse all: actions, so plain buttons like Copy rather than a segmented choice. */
-      .fold {
-        display: flex;
-        gap: 6px;
+      /* Expand all or Collapse all: an action, so a plain button like Copy, sized to the wider label
+         so the toolbar does not shift as it flips. */
+      .copy-button.fold {
+        min-width: 92px;
+        justify-content: center;
+      }
+      .copy-button.fold[disabled] {
+        cursor: default;
+        opacity: 0.45;
       }
       .copy-button:focus-visible {
         outline: 2px solid var(--uui-color-focus);

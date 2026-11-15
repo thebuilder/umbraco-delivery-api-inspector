@@ -15,6 +15,13 @@ import {
   type Segment,
 } from "./json.js";
 
+/**
+ * What folding can still do to the rows in view, read from what the tree last drew: "expand" while
+ * any of them is closed, "collapse" once all are open and collapseAll would close some, "none" when
+ * neither would change anything, and undefined when nothing in view folds.
+ */
+export type TreeFold = "expand" | "collapse" | "none" | undefined;
+
 export interface TreeHits {
   count: number;
   /** The current hit, from 0; -1 when there are none. */
@@ -55,6 +62,9 @@ export class JsonTreeElement extends LitElement {
   /** The block the pointer or focus is in, lit up by its brackets and indent guide. */
   #block?: number;
   #changedOpen = new Set<string>();
+  /** Rows that fold in the last drawing, how many were closed, and how many collapseAll would close. */
+  #folding = { rows: 0, closed: 0, collapsible: 0 };
+  #lastFold?: TreeFold | null = null;
   #removedByParent = new Map<string, [Segment, Change][]>();
 
   /** Opens every row, or under a search every row it shows. */
@@ -106,6 +116,12 @@ export class JsonTreeElement extends LitElement {
   protected updated(changed: PropertyValues): void {
     // Rows move when the tree draws again, so the lit block is measured again.
     this.#light(this.#block);
+    const { rows, closed, collapsible } = this.#folding;
+    const fold: TreeFold = !rows ? undefined : closed ? "expand" : collapsible ? "collapse" : "none";
+    if (fold !== this.#lastFold) {
+      this.#lastFold = fold;
+      this.dispatchEvent(new CustomEvent<TreeFold>("fold", { detail: fold }));
+    }
     if (changed.has("_thumb")) {
       const image = this.renderRoot.querySelector<HTMLElement>("img.thumb");
       if (image && !image.matches(":popover-open")) image.showPopover?.();
@@ -270,6 +286,7 @@ export class JsonTreeElement extends LitElement {
     // as a fold in an editor does. Lines only in published have no number.
     let line = 1;
     let pairs = 0;
+    this.#folding = { rows: 0, closed: 0, collapsible: 0 };
     const lead = (number: number | undefined, fold: unknown = nothing) =>
       html`<span class="ln" aria-hidden="true">${number ?? ""}</span><span class="sign" aria-hidden="true"></span><span class="fold">${fold}</span>`;
     const bracket = (text: string, depth: number, pair: number) => html`<span class="bracket b${depth % 3}" data-pair=${pair}>${text}</span>`;
@@ -311,6 +328,12 @@ export class JsonTreeElement extends LitElement {
 
       const entries = children(value);
       const open = entries.length > 0 && this.#isOpen(path, level);
+      if (entries.length) {
+        this.#folding.rows++;
+        if (!open) this.#folding.closed++;
+        // Collapsing under a search keeps the rows above each match open.
+        else if (!searching || !this.#keep.has(keyString) || this.#hitKeys.has(keyString)) this.#folding.collapsible++;
+      }
       const [start, end] = brackets(value);
       const pair = ++pairs;
       const tag = Array.isArray(value) ? nothing : this.#tag(value);
