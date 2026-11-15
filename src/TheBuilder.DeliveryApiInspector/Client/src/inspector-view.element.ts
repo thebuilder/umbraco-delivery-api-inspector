@@ -19,8 +19,6 @@ type Expand = "none" | "all" | "pick";
 
 interface Saved {
   mode?: Mode;
-  /** The levels picked by hand. Unset, the tree opens fully, or two levels for a large response. */
-  levels?: number;
   expand?: Expand;
   changeStyle?: "diff" | "inline";
 }
@@ -55,7 +53,6 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
   @state() private _expandPick: string[] = [];
   @state() private _fieldsPick: string[] = [];
   @state() private _changeStyle: "diff" | "inline" = "diff";
-  @state() private _depth?: number;
   @state() private _query = "";
   @state() private _hits?: TreeHits;
 
@@ -79,7 +76,6 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
     super();
     const saved = load();
     this._mode = saved.mode ?? "draft";
-    this._depth = saved.levels;
     this._changeStyle = saved.changeStyle ?? "diff";
     this._expand = saved.expand === "pick" ? "none" : (saved.expand ?? "none");
 
@@ -145,9 +141,9 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       this.#resize.disconnect();
       this.#resize.observe(this._urlElement);
     }
-    if (["_mode", "_depth", "_expand", "_changeStyle"].some((name) => changed.has(name))) {
+    if (["_mode", "_expand", "_changeStyle"].some((name) => changed.has(name))) {
       try {
-        localStorage.setItem(storageKey, JSON.stringify({ mode: this._mode, levels: this._depth, expand: this._expand, changeStyle: this._changeStyle } satisfies Saved));
+        localStorage.setItem(storageKey, JSON.stringify({ mode: this._mode, expand: this._expand, changeStyle: this._changeStyle } satisfies Saved));
       } catch {
         // Private windows and blocked storage: the choices just are not remembered.
       }
@@ -432,7 +428,12 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
                 <span class="hits">${this.#hitsLabel()}</span>
                 ${this._query ? html`<button type="button" class="clear" aria-label="Clear search" title="Clear search" @click=${(event: Event) => { event.preventDefault(); this._query = ""; this.shadowRoot?.querySelector<HTMLInputElement>("input.search")?.focus(); }}></button>` : nothing}
               </label>
-              ${this.#segmented("Open levels", this.#levels, [[1, "1", "Show the tree one level deep"], [2, "2", "Two levels deep"], [3, "3", "Three levels deep"], [99, "All", "Open every level"]], (value) => { this._depth = value; this.shadowRoot?.querySelector("thebuilder-json-tree")?.reset(); })}
+              <div class="segmented fold" role="group" aria-label="Fold">
+                <span class="track">
+                  <button type="button" title="Open every row" @click=${() => this.shadowRoot?.querySelector("thebuilder-json-tree")?.expandAll()}><span class="t">Expand all</span></button>
+                  <button type="button" title="Close every row to the top-level keys" @click=${() => this.shadowRoot?.querySelector("thebuilder-json-tree")?.collapseAll()}><span class="t">Collapse all</span></button>
+                </span>
+              </div>
             </div>
         <div class="body">${this.#body()}</div>
       </section>
@@ -440,11 +441,10 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
   }
 
   /**
-   * How many levels are open: the user's pick, or everything, as JSON viewers open a small response,
-   * and two levels for a large one, which is slow to draw and hard to scan fully open.
+   * How many levels a response opens to: everything, as JSON viewers open a small response, and two
+   * levels for a large one, which is slow to draw and hard to scan fully open.
    */
   get #levels(): number {
-    if (this._depth !== undefined) return this._depth;
     const response = this._response;
     if (!response) return 99;
     const large = response.bytes > 200 * 1024 || JSON.stringify(response.data, null, 2).split("\n").length > 1000;
@@ -532,8 +532,8 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       .spacer {
         flex: 1;
       }
-      /* Named like the API parameter, with the name outside as plain text, as "Open levels" does,
-         so only the box with the value looks clickable. */
+      /* Named like the API parameter, with the name outside as plain text, so only the box with the
+         value looks clickable. */
       .select {
         display: inline-flex;
         align-items: baseline;

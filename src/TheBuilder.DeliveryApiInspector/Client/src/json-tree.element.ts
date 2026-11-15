@@ -34,6 +34,11 @@ export class JsonTreeElement extends LitElement {
   @property() changeStyle: "diff" | "inline" = "diff";
   /** How many levels are open, where a row has not been opened or closed by hand. */
   @property({ type: Number }) depth = 3;
+  /**
+   * Set by expandAll and collapseAll, until the response or the search changes: every row open, or
+   * every row closed except the ones a search needs open to show its matches.
+   */
+  @state() private _fold?: "open" | "closed";
   /** Text to filter the tree by: a key, a value, or part of a path such as properties.image[0].url. */
   @property() query = "";
   /** Document and media type keys by alias, so a type badge can open its type. */
@@ -52,9 +57,16 @@ export class JsonTreeElement extends LitElement {
   #changedOpen = new Set<string>();
   #removedByParent = new Map<string, [Segment, Change][]>();
 
-  /** Closes and opens rows by hand again from the depth. */
-  reset(): void {
+  /** Opens every row, or under a search every row it shows. */
+  expandAll(): void {
     this._overrides = new Map();
+    this._fold = "open";
+  }
+
+  /** Closes every row to the top-level keys, or under a search to the rows above each match. */
+  collapseAll(): void {
+    this._overrides = new Map();
+    this._fold = "closed";
   }
 
   next(step = 1): void {
@@ -64,8 +76,10 @@ export class JsonTreeElement extends LitElement {
   }
 
   protected willUpdate(changed: PropertyValues): void {
-    if (changed.has("data") || changed.has("depth") || changed.has("changes")) {
+    // A new response, view or search starts from its own default, so nothing opened for the last one lingers.
+    if (changed.has("data") || changed.has("depth") || changed.has("changes") || changed.has("query")) {
       this._overrides = new Map();
+      this._fold = undefined;
     }
     if (changed.has("data")) {
       void this.#resolveKinds();
@@ -141,6 +155,8 @@ export class JsonTreeElement extends LitElement {
     const key = pathKey(path);
     const override = this._overrides.get(key);
     if (override !== undefined) return override;
+    if (this._fold === "open") return true;
+    if (this._fold === "closed") return !!this.query.trim() && this.#keep.has(key) && !this.#hitKeys.has(key);
     if (this.query.trim()) return this.#keep.has(key);
     if (this.changes) return this.#changedOpen.has(key);
     return level < this.depth;
