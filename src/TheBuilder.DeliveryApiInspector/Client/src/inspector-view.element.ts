@@ -453,12 +453,22 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
    * hand and the rows a search shows.
    */
   #foldButton() {
-    if (!this._fold || this._error || !this._response) return nothing;
-    const tree = () => this.shadowRoot?.querySelector("thebuilder-json-tree");
-    if (this._fold === "none") return html`<button type="button" class="copy-button fold" disabled title="Every row in view is open, and each is on the path to a match"><span class="t">Collapse all</span></button>`;
-    return this._fold === "expand"
-      ? html`<button type="button" class="copy-button fold" title=${this._query.trim() ? "Open every row the search shows" : "Open every row"} @click=${() => tree()?.expandAll()}><span class="t">Expand all</span></button>`
-      : html`<button type="button" class="copy-button fold" title=${this._query.trim() ? "Close to the path down to each match" : "Close every row to the top-level keys"} @click=${() => tree()?.collapseAll()}><span class="t">Collapse all</span></button>`;
+    if (!this._fold || !this.#showsTree) return nothing;
+    const expand = this._fold === "expand";
+    const searching = !!this._query.trim();
+    const title = this._fold === "none"
+      ? "Every row in view is open, and each is on the path to a match"
+      : expand
+        ? searching ? "Open every row the search shows" : "Open every row"
+        : searching ? "Close to the path down to each match" : "Close every row to the top-level keys";
+    // One template whatever the label, so the button keeps keyboard focus when it flips after a click.
+    return html`<button type="button" class="copy-button fold" title=${title} ?disabled=${this._fold === "none"}
+      @click=${() => { const tree = this.shadowRoot?.querySelector("thebuilder-json-tree"); if (expand) tree?.expandAll(); else tree?.collapseAll(); }}><span class="t">${expand ? "Expand all" : "Collapse all"}</span></button>`;
+  }
+
+  /** Whether the body shows the tree, rather than an error, a loader or a note that there are no changes. */
+  get #showsTree(): boolean {
+    return !this._error && !!this._response && !(this._mode === "changes" && this._changes?.size === 0);
   }
 
   #hitsLabel() {
@@ -469,9 +479,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
   #body() {
     if (this._error) return html`<p class="state">${this._error}</p>`;
     if (!this._response) return html`<div class="state"><uui-loader></uui-loader></div>`;
-    if (this._mode === "changes" && this._changes?.size === 0) {
-      return html`<p class="state">Draft and published return the same response.</p>`;
-    }
+    if (!this.#showsTree) return html`<p class="state">Draft and published return the same response.</p>`;
     const data: Json = this._response.data;
     return html`<thebuilder-json-tree class=${this._loading ? "loading" : ""} theme=${this._theme} .data=${data} .changes=${this._mode === "changes" ? this._changes : undefined}
       .depth=${this.#levels} .query=${this._query} changeStyle=${this._changeStyle}

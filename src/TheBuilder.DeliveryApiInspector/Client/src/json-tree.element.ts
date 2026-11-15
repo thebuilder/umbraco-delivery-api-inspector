@@ -275,6 +275,8 @@ export class JsonTreeElement extends LitElement {
   }
 
   render() {
+    // Counted afresh on every drawing, so a response that is a single value reports nothing to fold.
+    this.#folding = { rows: 0, closed: 0, collapsible: 0 };
     if (!isContainer(this.data)) {
       return html`<div class="tree" role="tree">${this.#value(null, this.data, [], undefined, undefined)}</div>`;
     }
@@ -286,7 +288,6 @@ export class JsonTreeElement extends LitElement {
     // as a fold in an editor does. Lines only in published have no number.
     let line = 1;
     let pairs = 0;
-    this.#folding = { rows: 0, closed: 0, collapsible: 0 };
     const lead = (number: number | undefined, fold: unknown = nothing) =>
       html`<span class="ln" aria-hidden="true">${number ?? ""}</span><span class="sign" aria-hidden="true"></span><span class="fold">${fold}</span>`;
     const bracket = (text: string, depth: number, pair: number) => html`<span class="bracket b${depth % 3}" data-pair=${pair}>${text}</span>`;
