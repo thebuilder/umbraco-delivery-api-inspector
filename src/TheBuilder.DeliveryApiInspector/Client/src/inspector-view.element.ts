@@ -429,10 +429,8 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
                 ${this._query ? html`<button type="button" class="clear" aria-label="Clear search" title="Clear search" @click=${(event: Event) => { event.preventDefault(); this._query = ""; this.shadowRoot?.querySelector<HTMLInputElement>("input.search")?.focus(); }}></button>` : nothing}
               </label>
               <div class="fold" role="group" aria-label="Fold">
-                <button type="button" class="copy-button icon" aria-label="Expand all" title="Expand all" @click=${() => this.shadowRoot?.querySelector("thebuilder-json-tree")?.expandAll()}>
-                  <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 6l3-3 3 3M5 10l3 3 3-3" /></svg></button>
-                <button type="button" class="copy-button icon" aria-label="Collapse all" title="Collapse all" @click=${() => this.shadowRoot?.querySelector("thebuilder-json-tree")?.collapseAll()}>
-                  <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3l3 3 3-3M5 13l3-3 3 3" /></svg></button>
+                <button type="button" class="copy-button" title="Open every row" @click=${() => this.shadowRoot?.querySelector("thebuilder-json-tree")?.expandAll()}><span class="t">Expand all</span></button>
+                <button type="button" class="copy-button" title="Close every row to the top-level keys" @click=${() => this.shadowRoot?.querySelector("thebuilder-json-tree")?.collapseAll()}><span class="t">Collapse all</span></button>
               </div>
             </div>
         <div class="body">${this.#body()}</div>
@@ -954,23 +952,6 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       .fold {
         display: flex;
         gap: 6px;
-      }
-      .copy-button.icon {
-        width: 30px;
-        padding: 0;
-        justify-content: center;
-      }
-      .copy-button.icon svg {
-        width: 16px;
-        height: 16px;
-        fill: none;
-        stroke: var(--uui-color-text-alt);
-        stroke-width: 1.5;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-      }
-      .copy-button.icon:hover svg {
-        stroke: var(--uui-color-text);
       }
       .copy-button:focus-visible {
         outline: 2px solid var(--uui-color-focus);
