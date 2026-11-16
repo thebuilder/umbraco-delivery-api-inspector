@@ -15,6 +15,13 @@ import {
   type Segment,
 } from "./json.js";
 
+/**
+ * What folding can still do to the rows in view, read from what the tree last drew: "expand" while
+ * any of them is closed, "collapse" once all are open and collapseAll would close some, "none" when
+ * neither would change anything, and undefined when nothing in view folds.
+ */
+export type TreeFold = "expand" | "collapse" | "none" | undefined;
+
 export interface TreeHits {
   count: number;
   /** The current hit, from 0; -1 when there are none. */
@@ -34,6 +41,11 @@ export class JsonTreeElement extends LitElement {
   @property() changeStyle: "diff" | "inline" = "diff";
   /** How many levels are open, where a row has not been opened or closed by hand. */
   @property({ type: Number }) depth = 3;
+  /**
+   * Set by expandAll and collapseAll, until the response or the search changes: every row open, or
+   * every row closed except the ones a search needs open to show its matches.
+   */
+  @state() private _fold?: "open" | "closed";
   /** Text to filter the tree by: a key, a value, or part of a path such as properties.image[0].url. */
   @property() query = "";
   /** Document and media type keys by alias, so a type badge can open its type. */
@@ -50,11 +62,21 @@ export class JsonTreeElement extends LitElement {
   /** The block the pointer or focus is in, lit up by its brackets and indent guide. */
   #block?: number;
   #changedOpen = new Set<string>();
+  /** Rows that fold in the last drawing, how many were closed, and how many collapseAll would close. */
+  #folding = { rows: 0, closed: 0, collapsible: 0 };
+  #lastFold?: TreeFold | null = null;
   #removedByParent = new Map<string, [Segment, Change][]>();
 
-  /** Closes and opens rows by hand again from the depth. */
-  reset(): void {
+  /** Opens every row, or under a search every row it shows. */
+  expandAll(): void {
     this._overrides = new Map();
+    this._fold = "open";
+  }
+
+  /** Closes every row to the top-level keys, or under a search to the rows above each match. */
+  collapseAll(): void {
+    this._overrides = new Map();
+    this._fold = "closed";
   }
 
   next(step = 1): void {
@@ -64,8 +86,10 @@ export class JsonTreeElement extends LitElement {
   }
 
   protected willUpdate(changed: PropertyValues): void {
-    if (changed.has("data") || changed.has("depth") || changed.has("changes")) {
+    // A new response, view or search starts from its own default, so nothing opened for the last one lingers.
+    if (changed.has("data") || changed.has("depth") || changed.has("changes") || changed.has("query")) {
       this._overrides = new Map();
+      this._fold = undefined;
     }
     if (changed.has("data")) {
       void this.#resolveKinds();
@@ -92,6 +116,12 @@ export class JsonTreeElement extends LitElement {
   protected updated(changed: PropertyValues): void {
     // Rows move when the tree draws again, so the lit block is measured again.
     this.#light(this.#block);
+    const { rows, closed, collapsible } = this.#folding;
+    const fold: TreeFold = !rows ? undefined : closed ? "expand" : collapsible ? "collapse" : "none";
+    if (fold !== this.#lastFold) {
+      this.#lastFold = fold;
+      this.dispatchEvent(new CustomEvent<TreeFold>("fold", { detail: fold }));
+    }
     if (changed.has("_thumb")) {
       const image = this.renderRoot.querySelector<HTMLElement>("img.thumb");
       if (image && !image.matches(":popover-open")) image.showPopover?.();
@@ -141,6 +171,8 @@ export class JsonTreeElement extends LitElement {
     const key = pathKey(path);
     const override = this._overrides.get(key);
     if (override !== undefined) return override;
+    if (this._fold === "open") return true;
+    if (this._fold === "closed") return !!this.query.trim() && this.#keep.has(key) && !this.#hitKeys.has(key);
     if (this.query.trim()) return this.#keep.has(key);
     if (this.changes) return this.#changedOpen.has(key);
     return level < this.depth;
@@ -243,6 +275,8 @@ export class JsonTreeElement extends LitElement {
   }
 
   render() {
+    // Counted afresh on every drawing, so a response that is a single value reports nothing to fold.
+    this.#folding = { rows: 0, closed: 0, collapsible: 0 };
     if (!isContainer(this.data)) {
       return html`<div class="tree" role="tree">${this.#value(null, this.data, [], undefined, undefined)}</div>`;
     }
@@ -295,6 +329,12 @@ export class JsonTreeElement extends LitElement {
 
       const entries = children(value);
       const open = entries.length > 0 && this.#isOpen(path, level);
+      if (entries.length) {
+        this.#folding.rows++;
+        if (!open) this.#folding.closed++;
+        // Collapsing under a search keeps the rows above each match open.
+        else if (!searching || !this.#keep.has(keyString) || this.#hitKeys.has(keyString)) this.#folding.collapsible++;
+      }
       const [start, end] = brackets(value);
       const pair = ++pairs;
       const tag = Array.isArray(value) ? nothing : this.#tag(value);

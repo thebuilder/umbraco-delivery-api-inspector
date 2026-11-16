@@ -10,7 +10,7 @@ import { UmbTextStyles } from "@umbraco-cms/backoffice/style";
 import { UMB_THEME_CONTEXT } from "@umbraco-cms/backoffice/themes";
 import { api, backofficeOrigin, InspectorError, type InspectorConfig, type InspectorResponse } from "./api.js";
 import { diff, isContainer, type Change, type Json } from "./json.js";
-import type { TreeHits } from "./json-tree.element.js";
+import type { TreeFold, TreeHits } from "./json-tree.element.js";
 import "./json-tree.element.js";
 import { buildRequest, fitUrl, fullUrl, propertiesParam, toCurl, toFetch, type DeliveryRequest, type ItemType, type UrlParts } from "./request.js";
 
@@ -19,8 +19,6 @@ type Expand = "none" | "all" | "pick";
 
 interface Saved {
   mode?: Mode;
-  /** The levels picked by hand. Unset, the tree opens fully, or two levels for a large response. */
-  levels?: number;
   expand?: Expand;
   changeStyle?: "diff" | "inline";
 }
@@ -55,9 +53,9 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
   @state() private _expandPick: string[] = [];
   @state() private _fieldsPick: string[] = [];
   @state() private _changeStyle: "diff" | "inline" = "diff";
-  @state() private _depth?: number;
   @state() private _query = "";
   @state() private _hits?: TreeHits;
+  @state() private _fold?: TreeFold;
 
   @state() private _response?: InspectorResponse;
   @state() private _changes?: Map<string, Change>;
@@ -79,7 +77,6 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
     super();
     const saved = load();
     this._mode = saved.mode ?? "draft";
-    this._depth = saved.levels;
     this._changeStyle = saved.changeStyle ?? "diff";
     this._expand = saved.expand === "pick" ? "none" : (saved.expand ?? "none");
 
@@ -145,9 +142,9 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       this.#resize.disconnect();
       this.#resize.observe(this._urlElement);
     }
-    if (["_mode", "_depth", "_expand", "_changeStyle"].some((name) => changed.has(name))) {
+    if (["_mode", "_expand", "_changeStyle"].some((name) => changed.has(name))) {
       try {
-        localStorage.setItem(storageKey, JSON.stringify({ mode: this._mode, levels: this._depth, expand: this._expand, changeStyle: this._changeStyle } satisfies Saved));
+        localStorage.setItem(storageKey, JSON.stringify({ mode: this._mode, expand: this._expand, changeStyle: this._changeStyle } satisfies Saved));
       } catch {
         // Private windows and blocked storage: the choices just are not remembered.
       }
@@ -432,7 +429,7 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
                 <span class="hits">${this.#hitsLabel()}</span>
                 ${this._query ? html`<button type="button" class="clear" aria-label="Clear search" title="Clear search" @click=${(event: Event) => { event.preventDefault(); this._query = ""; this.shadowRoot?.querySelector<HTMLInputElement>("input.search")?.focus(); }}></button>` : nothing}
               </label>
-              ${this.#segmented("Open levels", this.#levels, [[1, "1", "Show the tree one level deep"], [2, "2", "Two levels deep"], [3, "3", "Three levels deep"], [99, "All", "Open every level"]], (value) => { this._depth = value; this.shadowRoot?.querySelector("thebuilder-json-tree")?.reset(); })}
+              ${this.#foldButton()}
             </div>
         <div class="body">${this.#body()}</div>
       </section>
@@ -440,15 +437,38 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
   }
 
   /**
-   * How many levels are open: the user's pick, or everything, as JSON viewers open a small response,
-   * and two levels for a large one, which is slow to draw and hard to scan fully open.
+   * How many levels a response opens to: everything, as JSON viewers open a small response, and two
+   * levels for a large one, which is slow to draw and hard to scan fully open.
    */
   get #levels(): number {
-    if (this._depth !== undefined) return this._depth;
     const response = this._response;
     if (!response) return 99;
     const large = response.bytes > 200 * 1024 || JSON.stringify(response.data, null, 2).split("\n").length > 1000;
     return large ? 2 : 99;
+  }
+
+  /**
+   * One button that does what the tree in view needs: Expand all while any shown row is closed,
+   * Collapse all once every shown row is open. It reads the drawn tree, so it follows rows opened by
+   * hand and the rows a search shows.
+   */
+  #foldButton() {
+    if (!this._fold || !this.#showsTree) return nothing;
+    const expand = this._fold === "expand";
+    const searching = !!this._query.trim();
+    const title = this._fold === "none"
+      ? "Every row in view is open, and each is on the path to a match"
+      : expand
+        ? searching ? "Open every row the search shows" : "Open every row"
+        : searching ? "Close to the path down to each match" : "Close every row to the top-level keys";
+    // One template whatever the label, so the button keeps keyboard focus when it flips after a click.
+    return html`<button type="button" class="copy-button fold" title=${title} ?disabled=${this._fold === "none"}
+      @click=${() => { const tree = this.shadowRoot?.querySelector("thebuilder-json-tree"); if (expand) tree?.expandAll(); else tree?.collapseAll(); }}><span class="t">${expand ? "Expand all" : "Collapse all"}</span></button>`;
+  }
+
+  /** Whether the body shows the tree, rather than an error, a loader or a note that there are no changes. */
+  get #showsTree(): boolean {
+    return !this._error && !!this._response && !(this._mode === "changes" && this._changes?.size === 0);
   }
 
   #hitsLabel() {
@@ -459,14 +479,13 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
   #body() {
     if (this._error) return html`<p class="state">${this._error}</p>`;
     if (!this._response) return html`<div class="state"><uui-loader></uui-loader></div>`;
-    if (this._mode === "changes" && this._changes?.size === 0) {
-      return html`<p class="state">Draft and published return the same response.</p>`;
-    }
+    if (!this.#showsTree) return html`<p class="state">Draft and published return the same response.</p>`;
     const data: Json = this._response.data;
     return html`<thebuilder-json-tree class=${this._loading ? "loading" : ""} theme=${this._theme} .data=${data} .changes=${this._mode === "changes" ? this._changes : undefined}
       .depth=${this.#levels} .query=${this._query} changeStyle=${this._changeStyle}
       .types=${{ document: this._config?.documentTypes ?? null, media: this._config?.mediaTypes ?? null }}
       @hits=${(event: CustomEvent<TreeHits>) => (this._hits = event.detail)}
+      @fold=${(event: CustomEvent<TreeFold>) => (this._fold = event.detail)}
       @copied=${(event: CustomEvent<string>) => this.#notification?.peek("positive", { data: { message: event.detail } })}></thebuilder-json-tree>`;
   }
 
@@ -532,8 +551,8 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
       .spacer {
         flex: 1;
       }
-      /* Named like the API parameter, with the name outside as plain text, as "Open levels" does,
-         so only the box with the value looks clickable. */
+      /* Named like the API parameter, with the name outside as plain text, so only the box with the
+         value looks clickable. */
       .select {
         display: inline-flex;
         align-items: baseline;
@@ -949,6 +968,16 @@ export class InspectorViewElement extends UmbElementMixin(LitElement) {
 
       .copy-button:hover {
         background: var(--inspector-track);
+      }
+      /* Expand all or Collapse all: an action, so a plain button like Copy, sized to the wider label
+         so the toolbar does not shift as it flips. */
+      .copy-button.fold {
+        min-width: 92px;
+        justify-content: center;
+      }
+      .copy-button.fold[disabled] {
+        cursor: default;
+        opacity: 0.45;
       }
       .copy-button:focus-visible {
         outline: 2px solid var(--uui-color-focus);
