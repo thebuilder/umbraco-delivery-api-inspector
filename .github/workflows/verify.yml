@@ -198,7 +198,7 @@ jobs:
           ASPNETCORE_URLS: http://localhost:5330
           FRAMEWORK: ${{ matrix.framework }}
         run: |
-          nohup dotnet "bin/Release/$FRAMEWORK/"TheBuilder.DeliveryApiInspector.Example.dll" > "$RUNNER_TEMP/umbraco.log" 2>&1 &
+          nohup dotnet "bin/Release/$FRAMEWORK/TheBuilder.DeliveryApiInspector.Example.dll" > "$RUNNER_TEMP/umbraco.log" 2>&1 &
           echo $! > "$RUNNER_TEMP/umbraco.pid"
 
       # The seeder logs when it is done; its last step saves an unpublished change on Harbour mornings.
