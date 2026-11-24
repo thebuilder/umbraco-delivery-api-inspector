@@ -26,7 +26,7 @@ The response is a tree you can search and filter, open to a set depth, and reque
 hover, and a GUID opens its document or media item. The request copies as a URL, a curl command or a
 `fetch` call, and the response, or any part of it, copies as JSON.
 
-It supports Umbraco 17.4 and later, Umbraco 18 included, on .NET 10.
+It supports Umbraco 17.4 through 19.x: Umbraco 17 and 18 on .NET 10, Umbraco 19 on .NET 11.
 
 ## Getting started
 

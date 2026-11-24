@@ -34,16 +34,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        umbraco-version:
-          - 17.4.0
-          - 17.*
-          - 18.*
+        include:
+          - { umbraco-version: 17.4.0, framework: net10.0 }
+          - { umbraco-version: 17.*, framework: net10.0 }
+          - { umbraco-version: 18.*, framework: net10.0 }
+          # Umbraco 19 runs on .NET 11 only. The prerelease wildcard picks up release candidates
+          # until 19.0.0 ships.
+          - { umbraco-version: 19.*-*, framework: net11.0 }
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: |
+            10.0.x
+            11.0.x
 
       - name: Cache NuGet packages
         uses: actions/cache@v4
@@ -56,7 +61,8 @@ jobs:
       - name: Build
         env:
           UMBRACO_VERSION: ${{ matrix.umbraco-version }}
-        run: dotnet build src/TheBuilder.DeliveryApiInspector -c Release "-p:UmbracoVersion=$UMBRACO_VERSION"
+          FRAMEWORK: ${{ matrix.framework }}
+        run: dotnet build src/TheBuilder.DeliveryApiInspector -c Release "-p:TargetFrameworks=$FRAMEWORK" "-p:UmbracoVersion=$UMBRACO_VERSION"
 
   # The documentation site, so a page that does not build fails the change that broke it rather
   # than the next deploy. The build also draws the Open Graph cards and the favicon from the logo.
@@ -147,9 +153,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        umbraco:
-          - 17.8.1
-          - 18.3.1
+        include:
+          - { umbraco: 17.8.1, framework: net10.0 }
+          - { umbraco: 18.3.1, framework: net10.0 }
+          # The sample builds for .NET 11 on Umbraco 19. Move to 19.0.0 once it ships.
+          - { umbraco: 19.0.0-rc2, framework: net11.0 }
     env:
       SITE_URL: http://localhost:5330
     steps:
@@ -157,7 +165,9 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: |
+            10.0.x
+            11.0.x
 
       - name: Cache NuGet packages
         uses: actions/cache@v4
@@ -186,8 +196,9 @@ jobs:
         env:
           ASPNETCORE_ENVIRONMENT: Development
           ASPNETCORE_URLS: http://localhost:5330
+          FRAMEWORK: ${{ matrix.framework }}
         run: |
-          nohup dotnet bin/Release/net10.0/TheBuilder.DeliveryApiInspector.Example.dll > "$RUNNER_TEMP/umbraco.log" 2>&1 &
+          nohup dotnet "bin/Release/$FRAMEWORK/"TheBuilder.DeliveryApiInspector.Example.dll" > "$RUNNER_TEMP/umbraco.log" 2>&1 &
           echo $! > "$RUNNER_TEMP/umbraco.pid"
 
       # The seeder logs when it is done; its last step saves an unpublished change on Harbour mornings.
@@ -225,7 +236,9 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: |
+            10.0.x
+            11.0.x
 
       - uses: actions/setup-node@v4
         with:
@@ -295,6 +308,7 @@ jobs:
           manifest="staticwebassets/App_Plugins/TheBuilder.DeliveryApiInspector/umbraco-package.json"
 
           for entry in README.md LICENSE icon.png lib/net10.0/TheBuilder.DeliveryApiInspector.dll lib/net10.0/TheBuilder.DeliveryApiInspector.xml \
+            lib/net11.0/TheBuilder.DeliveryApiInspector.dll lib/net11.0/TheBuilder.DeliveryApiInspector.xml \
             "$manifest" staticwebassets/App_Plugins/TheBuilder.DeliveryApiInspector/delivery-api-inspector.js; do
             grep -Fqx "$entry" <<< "$entries" || { echo "The package is missing $entry." >&2; exit 1; }
           done
@@ -303,12 +317,15 @@ jobs:
           grep -Fq "<version>$PACKAGE_VERSION</version>" <<< "$nuspec"
           # The Marketplace lists packages from nuget.org by this tag.
           grep -Fq "umbraco-marketplace" <<< "$nuspec"
-          # Every Umbraco dependency carries the range Directory.Packages.props declares.
-          range="$(dotnet msbuild src/TheBuilder.DeliveryApiInspector/TheBuilder.DeliveryApiInspector.csproj -getProperty:UmbracoVersion)"
-          range="${range/,/, }"
-          for dependency in Umbraco.Cms.Api.Delivery Umbraco.Cms.Api.Management; do
-            grep -Fq "<dependency id=\"$dependency\" version=\"$range\"" <<< "$nuspec" \
-              || { echo "$dependency does not depend on $range." >&2; exit 1; }
+          # Every Umbraco dependency carries the range Directory.Packages.props declares for each
+          # framework: Umbraco 17 and 18 on .NET 10, Umbraco 19 on .NET 11.
+          for framework in net10.0 net11.0; do
+            range="$(dotnet msbuild src/TheBuilder.DeliveryApiInspector/TheBuilder.DeliveryApiInspector.csproj "-p:TargetFramework=$framework" -getProperty:UmbracoVersion)"
+            range="${range/,/, }"
+            for dependency in Umbraco.Cms.Api.Delivery Umbraco.Cms.Api.Management; do
+              grep -Fq "<dependency id=\"$dependency\" version=\"$range\"" <<< "$nuspec" \
+                || { echo "$dependency does not depend on $range for $framework." >&2; exit 1; }
+            done
           done
           if [[ -n "$RELEASE_TAG" ]]; then
             grep -Fq "<releaseNotes>$RELEASES_URL/$RELEASE_TAG</releaseNotes>" <<< "$nuspec"

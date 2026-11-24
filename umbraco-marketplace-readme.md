@@ -14,7 +14,7 @@ Delivery API Inspector adds an **API** tab to every document and media item in t
 
 ## Install
 
-Needs Umbraco CMS 17.4 through 18.x on .NET 10, with `AddDeliveryApi()` in `Program.cs`.
+Needs Umbraco CMS 17.4 through 19.x (Umbraco 17 and 18 on .NET 10, Umbraco 19 on .NET 11), with `AddDeliveryApi()` in `Program.cs`.
 
 ```sh
 dotnet add package TheBuilder.DeliveryApiInspector

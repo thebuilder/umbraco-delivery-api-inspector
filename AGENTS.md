@@ -1,6 +1,6 @@
 # Agents
 
-`TheBuilder.DeliveryApiInspector` is one NuGet package for Umbraco 17 and 18 (.NET 10): an API tab on
+`TheBuilder.DeliveryApiInspector` is one NuGet package for Umbraco 17 and 18 (.NET 10) and Umbraco 19 (.NET 11): an API tab on
 every document and media item in the backoffice that shows exactly what the Delivery API returns for
 it.
 

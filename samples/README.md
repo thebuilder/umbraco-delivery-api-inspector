@@ -6,7 +6,7 @@ first start. It references the package project, so the API tab is on every docum
 
 ## Run it
 
-Needs the .NET 10 SDK, and pnpm for the backoffice client.
+Needs the .NET 10 SDK (and the .NET 11 SDK for Umbraco 19), and pnpm for the backoffice client.
 
 ```bash
 pnpm install && pnpm build
@@ -45,4 +45,10 @@ To run the sample on Umbraco 18:
 
 ```bash
 dotnet run --project samples/TheBuilder.DeliveryApiInspector.Example -p:SampleUmbracoVersion=18.3.1
+```
+
+To run it on Umbraco 19, which builds the sample for .NET 11:
+
+```bash
+dotnet run --project samples/TheBuilder.DeliveryApiInspector.Example -p:SampleUmbracoVersion=19.0.0-rc2
 ```

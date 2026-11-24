@@ -2,15 +2,22 @@
   <!-- An Umbraco site with seeded content (blocks, a block grid, pickers, images, two languages) to
        try the package on and run the end-to-end checks against. See ../README.md. -->
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <!-- Umbraco 19 runs on .NET 11 only. -->
+    <TargetFramework Condition="$(SampleUmbracoVersion.StartsWith('19'))">net11.0</TargetFramework>
+    <TargetFramework Condition="'$(TargetFramework)' == ''">net10.0</TargetFramework>
     <UserSecretsId>TheBuilder.DeliveryApiInspector.Example</UserSecretsId>
     <IsPackable>false</IsPackable>
     <BuildInParallel>false</BuildInParallel>
+    <!-- As Umbraco's own site template has it: the backoffice files come precompressed, and the
+         .NET 11 SDK fails to compress Umbraco 19's again. -->
+    <CompressionEnabled>false</CompressionEnabled>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Umbraco.Cms" />
     <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" />
-    <!-- Lift Umbraco's vulnerable transitive versions; see Directory.Packages.props. -->
+  </ItemGroup>
+  <!-- Lift Umbraco 17 and 18's vulnerable transitive versions; see Directory.Packages.props. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <PackageReference Include="MessagePack" />
     <PackageReference Include="System.Security.Cryptography.Pkcs" />
   </ItemGroup>

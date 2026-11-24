@@ -122,6 +122,16 @@ internal sealed class ExampleSiteSeeder(
             "Umb.PropertyEditorUi.Tags",
             ValueStorageType.Ntext,
             new Dictionary<string, object> { ["group"] = "default", ["storageType"] = "Json" });
+#if NET11_0_OR_GREATER
+        // Umbraco 19 gave a dropdown holding one value its own editor.
+        IDataType difficulty = await seed.EnsureDataType(
+            ExampleContent.DifficultyDataType,
+            "Example Difficulty",
+            "Umbraco.DropDown.Single",
+            "Umb.PropertyEditorUi.Dropdown.Single",
+            ValueStorageType.Nvarchar,
+            new Dictionary<string, object> { ["items"] = new[] { "Easy", "Moderate", "Hard" } });
+#else
         IDataType difficulty = await seed.EnsureDataType(
             ExampleContent.DifficultyDataType,
             "Example Difficulty",
@@ -129,6 +139,7 @@ internal sealed class ExampleSiteSeeder(
             "Umb.PropertyEditorUi.Dropdown",
             ValueStorageType.Nvarchar,
             new Dictionary<string, object> { ["items"] = new[] { "Easy", "Moderate", "Hard" }, ["multiple"] = false });
+#endif
 
         await seed.EnsureContentType(ExampleContent.CalloutBlockType, () => Element("calloutBlock", "Callout", "icon-lightbulb", (text, "heading", "Heading"), (textArea, "text", "Text"), (contentPicker, "link", "Link")));
 
